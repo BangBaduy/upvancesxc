@@ -91,32 +91,32 @@ function OnboardingContent() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) { router.replace("/login"); return; }
+      if (data.user) {
+        const name = (data.user.user_metadata?.full_name as string) || "";
+        setForm((f) => ({ ...f, full_name: name }));
 
-      const name = (data.user.user_metadata?.full_name as string) || "";
-      setForm((f) => ({ ...f, full_name: name }));
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("has_completed_onboarding, interests, goals, institution, major, semester, bio")
+          .eq("id", data.user.id)
+          .maybeSingle();
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("has_completed_onboarding, interests, goals, institution, major, semester, bio")
-        .eq("id", data.user.id)
-        .maybeSingle();
+        if (profile?.has_completed_onboarding && !isEditMode) {
+          router.replace("/dashboard");
+          return;
+        }
 
-      if (profile?.has_completed_onboarding && !isEditMode) {
-        router.replace("/dashboard");
-        return;
-      }
-
-      if (profile) {
-        setForm((f) => ({
-          ...f,
-          institution: profile.institution || "",
-          major: profile.major || "",
-          semester: profile.semester ? String(profile.semester) : "",
-          bio: profile.bio || "",
-          interests: profile.interests || [],
-          goals: profile.goals || [],
-        }));
+        if (profile) {
+          setForm((f) => ({
+            ...f,
+            institution: profile.institution || "",
+            major: profile.major || "",
+            semester: profile.semester ? String(profile.semester) : "",
+            bio: profile.bio || "",
+            interests: profile.interests || [],
+            goals: profile.goals || [],
+          }));
+        }
       }
 
       setIsChecking(false);
@@ -213,9 +213,20 @@ function OnboardingContent() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Image 
+            src="/background-auth.png" 
+            alt="" 
+            fill 
+            className="object-cover opacity-60" 
+            priority 
+          />
+        </div>
+
         {/* Top bar */}
-        <div className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+        <div className="flex items-center justify-between px-8 py-4 bg-white/80 backdrop-blur-sm border-b border-gray-100 relative z-10">
           {/* Mobile logo */}
           <Image src="/Logo.png" alt="Upvance" width={90} height={30} className="object-contain lg:invisible" />
           {/* Progress mobile */}
@@ -230,8 +241,8 @@ function OnboardingContent() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 flex items-start justify-center px-6 py-10 overflow-y-auto">
-          <div className="w-full max-w-[520px]">
+        <div className="flex-1 flex items-start justify-center px-4 md:px-6 py-10 overflow-y-auto relative z-10">
+          <div className="w-full max-w-[550px] bg-white/90 backdrop-blur-md rounded-[32px] border border-white/50 p-6 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
             {/* Step header */}
             <div className="mb-8">
               <p className="text-[13px] text-[#2563eb] font-semibold mb-1">Langkah {step} dari {STEPS.length}</p>

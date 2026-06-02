@@ -30,6 +30,17 @@ const nextConfig = {
         // Foto profil Google OAuth (fallback domain)
         protocol: 'https',
         hostname: 'www.google.com',
+      },
+      {
+        // UIN Jakarta Assets
+        protocol: 'https',
+        hostname: 'asset.uinjkt.ac.id',
+        pathname: '/**',
+      },
+      {
+        // Allow images from any source for event posters (flexible but less secure - common for news/aggregator sites)
+        protocol: 'https',
+        hostname: '**',
       }
     ],
     unoptimized: false,

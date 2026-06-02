@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
+import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import Header from "@/components/organism/Header";
+import Footer from "@/components/organism/Footer";
 import EventCard from "@/components/molecules/EventCard";
 import { Filter, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import type { Database } from "@/types";
@@ -34,7 +36,8 @@ const GREEN_CATEGORIES: { label: string; value: EventCategory }[] = [
 ];
 
 const ALL_CATEGORIES = [...UMUM_CATEGORIES, ...GREEN_CATEGORIES];
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 50; // Fetch more to allow client-side filtering by month
+const EVENTS_PER_PAGE = 6; // Display 6 events per slide
 const currentYear = new Date().getFullYear();
 
 function CalendarContent() {
@@ -43,7 +46,7 @@ function CalendarContent() {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedCategories, setSelectedCategories] = useState<Set<EventCategory>>(new Set());
   const [isFreeOnly, setIsFreeOnly] = useState(false);
-  const [activeSegment, setActiveSegment] = useState<"all" | "umum" | "green">("all");
+  const [activeSegment, setActiveSegment] = useState<"all" | "umum" | "green" | "saved">("all");
 
   const [events, setEvents] = useState<EventRow[]>([]);
   const [page, setPage] = useState(1);
@@ -51,40 +54,48 @@ function CalendarContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchEvents = useCallback(async (currentPage: number) => {
+  const fetchEvents = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({
-        page: String(currentPage),
-        limit: String(ITEMS_PER_PAGE),
-      });
+      let allEvents: EventRow[] = [];
 
-      // Tentukan kategori berdasarkan segmen + filter kategori yang dipilih
-      let activeCats: EventCategory[] = [];
-      if (selectedCategories.size > 0) {
-        activeCats = Array.from(selectedCategories);
-      } else if (activeSegment === "umum") {
-        activeCats = UMUM_CATEGORIES.map(c => c.value);
-      } else if (activeSegment === "green") {
-        activeCats = GREEN_CATEGORIES.map(c => c.value);
+      if (activeSegment === "saved") {
+        const res = await fetch(`/api/bookmarks`);
+        const json = await res.json();
+        if (!res.ok || json.error) { setError(json.error || "Gagal memuat bookmark"); setEvents([]); return; }
+        allEvents = json.data?.map((b: any) => b.events) || [];
+      } else {
+        const params = new URLSearchParams({
+          page: "1",
+          limit: String(ITEMS_PER_PAGE),
+        });
+
+        // Tentukan kategori berdasarkan segmen + filter kategori yang dipilih
+        let activeCats: EventCategory[] = [];
+        if (selectedCategories.size > 0) {
+          activeCats = Array.from(selectedCategories);
+        } else if (activeSegment === "umum") {
+          activeCats = UMUM_CATEGORIES.map(c => c.value);
+        } else if (activeSegment === "green") {
+          activeCats = GREEN_CATEGORIES.map(c => c.value);
+        }
+
+        if (activeCats.length === 1) {
+          params.set("category", activeCats[0]);
+        } else if (activeCats.length > 1) {
+          params.set("categories", activeCats.join(","));
+        }
+
+        if (isFreeOnly) params.set("is_free", "true");
+
+        const res = await fetch(`/api/events?${params.toString()}`);
+        const json = await res.json();
+        if (!res.ok || json.error) { setError(json.error || "Gagal memuat acara"); setEvents([]); return; }
+        allEvents = json.data ?? [];
       }
-
-      if (activeCats.length === 1) {
-        params.set("category", activeCats[0]);
-      } else if (activeCats.length > 1) {
-        params.set("categories", activeCats.join(","));
-      }
-
-      if (isFreeOnly) params.set("is_free", "true");
-
-      const res = await fetch(`/api/events?${params.toString()}`);
-      const json = await res.json();
-
-      if (!res.ok || json.error) { setError(json.error || "Gagal memuat acara"); setEvents([]); return; }
 
       // Filter bulan di client (API tidak support filter tanggal untuk efisiensi)
-      const allEvents: EventRow[] = json.data ?? [];
       const filtered = allEvents.filter((e) => {
         if (!e.start_date && !e.deadline) return true;
         const dateStr = e.start_date || e.deadline || "";
@@ -93,7 +104,7 @@ function CalendarContent() {
       });
 
       setEvents(filtered);
-      setTotalPages(json.meta?.total_pages ?? 1);
+      setTotalPages(Math.ceil(filtered.length / EVENTS_PER_PAGE) || 1);
     } catch {
       setError("Gagal terhubung ke server.");
     } finally {
@@ -101,7 +112,7 @@ function CalendarContent() {
     }
   }, [selectedMonth, selectedYear, selectedCategories, isFreeOnly, activeSegment]);
 
-  useEffect(() => { setPage(1); fetchEvents(1); }, [selectedMonth, selectedYear, selectedCategories, isFreeOnly, activeSegment]);
+  useEffect(() => { setPage(1); fetchEvents(); }, [selectedMonth, selectedYear, selectedCategories, isFreeOnly, activeSegment]);
 
   const toggleCategory = (cat: EventCategory) => {
     setSelectedCategories((prev) => {
@@ -119,15 +130,44 @@ function CalendarContent() {
 
   const hasFilters = selectedCategories.size > 0 || isFreeOnly || activeSegment !== "all";
 
-  return (
-    <main className="min-h-screen bg-white pt-[100px] pb-20 px-4 md:px-10">
-      <Header />
-      <div className="max-w-[1280px] mx-auto flex gap-8">
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-        {/* Sidebar Filters */}
-        <aside className="w-[252px] shrink-0 sticky top-[100px] h-fit">
-          <div className="bg-[#eaf6ff] rounded-[10.5px] p-3.5 flex flex-col gap-3.5">
-            <div className="flex items-center justify-between pb-3.5 border-b border-[#cbd5e1]">
+  return (
+    <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
+      <Header />
+
+      {/* Background Layer */}
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
+        <div className="absolute inset-0 w-full h-full">
+          <Image 
+            src="/Background.png" 
+            alt="" 
+            fill 
+            className="object-cover opacity-80 object-top" 
+            priority 
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-[#f8fafc]/40 to-[#f8fafc]" />
+        </div>
+      </div>
+
+      <main className="pt-[100px] pb-10 px-4 md:px-10 relative z-10">
+        <div className="max-w-[1280px] mx-auto flex flex-col lg:flex-row gap-4 lg:gap-4">
+
+        {/* Mobile/Tablet Filter Toggle (Visible below 1024px) */}
+        <div className="lg:hidden w-full flex justify-center mb-6">
+          <button 
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+            className="flex items-center justify-center gap-2 bg-[#16558f] text-white py-2.5 px-8 rounded-xl font-bold shadow-md active:scale-95 transition-all w-full max-w-[280px]"
+          >
+            <Filter className="w-4 h-4" />
+            <span className="text-[13px]">{showMobileFilters ? "Tutup Filter" : "Lihat Filter Acara"}</span>
+          </button>
+        </div>
+
+        {/* Sidebar Filters - Stacked on Tablet, Side-by-side on Desktop */}
+        <aside className={`${showMobileFilters ? 'block' : 'hidden'} lg:block w-full lg:w-[220px] shrink-0 lg:sticky lg:top-[100px] h-fit z-20 mb-8 lg:mb-0`}>
+          <div className="bg-[#eaf6ff] rounded-[10.5px] p-3 flex flex-col gap-3 shadow-sm border border-blue-50">
+            <div className="flex items-center justify-between pb-3 border-b border-[#cbd5e1]">
               <div className="flex items-center gap-2">
                 <Filter className="w-6 h-6 text-[#080808]" />
                 <span className="text-[14px] font-bold text-[#080808]">Filter</span>
@@ -146,10 +186,20 @@ function CalendarContent() {
                 { label: "Semua Acara", value: "all" as const },
                 { label: "🎓 Umum", value: "umum" as const },
                 { label: "🌿 Green & Volunteer", value: "green" as const },
+                { label: "🔖 Bookmarks", value: "saved" as const },
               ].map((seg) => (
                 <button
                   key={seg.value}
-                  onClick={() => { setActiveSegment(seg.value); setSelectedCategories(new Set()); }}
+                  onClick={() => { 
+                    setActiveSegment(seg.value); 
+                    if (seg.value === "green") {
+                      setSelectedCategories(new Set(["Volunteer", "Greenvity"]));
+                    } else if (seg.value === "umum") {
+                      setSelectedCategories(new Set(UMUM_CATEGORIES.map(c => c.value)));
+                    } else {
+                      setSelectedCategories(new Set());
+                    }
+                  }}
                   className={`text-left px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
                     activeSegment === seg.value
                       ? "bg-[#16558f] text-white"
@@ -241,14 +291,14 @@ function CalendarContent() {
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-12 gap-[7px]">
+            <div className="flex overflow-x-auto no-scrollbar gap-1 pb-2">
               {months.map((m) => (
                 <button
                   key={m.value}
                   onClick={() => setSelectedMonth(m.value)}
-                  className={`h-[42px] flex items-center justify-center rounded-[7px] border text-[12.3px] uppercase font-light transition-all shadow-sm ${
+                  className={`h-[32px] md:h-[42px] px-3 md:px-4 shrink-0 flex items-center justify-center rounded-[6px] border text-[10px] md:text-[12.3px] uppercase font-light transition-all shadow-sm ${
                     selectedMonth === m.value
-                      ? "bg-[#16558f] border-[#16558f] text-white"
+                      ? "bg-[#16558f] border-[#16558f] text-white font-bold"
                       : "bg-[#eaf6ff] border-[#eaf6ff] text-[#131516] hover:border-[#16558f]"
                   }`}
                 >
@@ -256,16 +306,6 @@ function CalendarContent() {
                 </button>
               ))}
             </div>
-
-            {/* Active segment indicator */}
-            {activeSegment !== "all" && (
-              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[12px] font-semibold w-fit ${
-                activeSegment === "green" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
-              }`}>
-                {activeSegment === "green" ? "🌿 Green & Volunteer" : "🎓 Umum"}
-                <button onClick={clearFilters} className="hover:opacity-70">×</button>
-              </div>
-            )}
           </section>
 
           {isLoading && <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-[#2563eb] animate-spin" /></div>}
@@ -284,8 +324,8 @@ function CalendarContent() {
           )}
 
           {!isLoading && !error && events.length > 0 && (
-            <section className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {events.map((event) => (
+            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 justify-items-center">
+              {events.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE).map((event) => (
                 <EventCard
                   key={event.id}
                   id={event.id}
@@ -304,19 +344,33 @@ function CalendarContent() {
           )}
 
           {!isLoading && totalPages > 1 && (
-            <div className="flex justify-between items-center mt-10">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="px-8 py-2 border border-[#2563eb] text-[#2563eb] font-bold rounded-lg flex items-center gap-2 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed">
-                <ChevronLeft className="w-5 h-5" /> Sebelumnya
+            <div className="flex flex-row items-center justify-between mt-10 gap-2">
+              <button 
+                onClick={() => setPage((p) => Math.max(1, p - 1))} 
+                disabled={page <= 1} 
+                className="flex-1 md:flex-none md:px-8 py-2 border border-[#2563eb] text-[#2563eb] text-[13px] md:text-[14px] font-bold rounded-lg flex items-center justify-center gap-1 md:gap-2 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" /> <span>Sebelumnya</span>
               </button>
-              <span className="text-[14px] text-gray-500">{page} / {totalPages}</span>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-8 py-2 border border-[#2563eb] text-[#2563eb] font-bold rounded-lg flex items-center gap-2 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed">
-                Selanjutnya <ChevronRight className="w-5 h-5" />
+              
+              <span className="text-[12px] md:text-[14px] text-gray-500 font-medium whitespace-nowrap px-2">
+                {page} / {totalPages}
+              </span>
+              
+              <button 
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))} 
+                disabled={page >= totalPages} 
+                className="flex-1 md:flex-none md:px-8 py-2 border border-[#2563eb] text-[#2563eb] text-[13px] md:text-[14px] font-bold rounded-lg flex items-center justify-center gap-1 md:gap-2 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <span>Selanjutnya</span> <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           )}
         </div>
       </div>
-    </main>
+      </main>
+      <Footer />
+    </div>
   );
 }
 

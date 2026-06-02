@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, Suspense } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, MailCheck } from "lucide-react";
 import AuthSidebar from "@/components/organism/AuthSidebar";
@@ -144,8 +145,6 @@ function VerifyOTPContent() {
     setError(null);
     setOtp(Array(OTP_LENGTH).fill(""));
     inputRefs.current[0]?.focus();
-    // Resend dilakukan dari halaman register/login saja,
-    // jadi cukup arahkan balik ke register
     router.push(`/register?email=${encodeURIComponent(email)}`);
   };
 
@@ -155,9 +154,23 @@ function VerifyOTPContent() {
         <AuthSidebar />
 
         {/* OTP Form Section */}
-        <div className="flex-1 relative flex items-center justify-center p-6 lg:p-12 overflow-hidden bg-white min-h-screen">
+        <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-12 overflow-y-auto bg-white min-h-screen">
+          {/* Mobile Logo (Visible only on < lg) */}
+          <div className="lg:hidden mb-8 z-20">
+            <Link href="/">
+              <div className="w-[120px] h-[48px] relative">
+                <Image
+                  src="/Logo.png"
+                  alt="Upvance Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </Link>
+          </div>
+
           {/* Background Image */}
-          <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 z-0 pointer-events-none">
             <Image
               src="/background-auth.png"
               alt="Background"
@@ -174,17 +187,17 @@ function VerifyOTPContent() {
           <div className="absolute top-[8%] left-[10%] w-[18vw] max-w-[300px] aspect-square bg-gradient-to-bl from-green-400/10 to-transparent rounded-full blur-3xl pointer-events-none z-0" />
 
           {/* OTP Card */}
-          <div className="w-full max-w-[450px] bg-[#D9D9D9]/80 backdrop-blur-xl rounded-[25px] p-8 md:p-12 shadow-[0px_40px_40px_0px_rgba(0,0,0,0.24),0px_10px_22px_0px_rgba(0,0,0,0.27)] relative z-10 flex flex-col items-center">
+          <div className="w-full max-w-[500px] bg-white/95 backdrop-blur-2xl border border-white/50 rounded-[24px] p-6 md:p-12 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] relative z-10 flex flex-col items-center">
             {/* Icon */}
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-5">
-              <MailCheck className="w-8 h-8 text-blue-600" />
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mb-5">
+              <MailCheck className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
             </div>
 
-            <h2 className="text-[24px] font-bold text-center text-black mb-2">
+            <h2 className="text-[20px] md:text-[24px] font-bold text-center text-black mb-2">
               Verifikasi Email
             </h2>
 
-            <p className="text-[13px] text-black/60 text-center mb-6 max-w-[280px]">
+            <p className="text-[12px] md:text-[13px] text-black/60 text-center mb-6 max-w-[280px] md:max-w-none">
               Kami telah mengirimkan kode <span className="font-bold text-black/80">{OTP_LENGTH} digit</span> ke{" "}
               <span className="font-semibold text-blue-600 break-all">
                 {email || "email kamu"}
@@ -208,7 +221,7 @@ function VerifyOTPContent() {
             <form onSubmit={handleSubmit} className="w-full flex flex-col items-center gap-6">
               {/* OTP Input Boxes */}
               <div
-                className="flex gap-2 justify-center"
+                className="flex gap-1 md:gap-2 justify-center flex-wrap"
                 onPaste={handlePaste}
               >
                 {Array.from({ length: OTP_LENGTH }).map((_, i) => (
@@ -225,7 +238,7 @@ function VerifyOTPContent() {
                     disabled={isLoading || success}
                     aria-label={`Digit OTP ke-${i + 1}`}
                     className={`
-                      w-[42px] h-[50px] text-center text-[20px] font-bold
+                      w-[35px] md:w-[42px] h-[45px] md:h-[50px] text-center text-[18px] md:text-[20px] font-bold
                       bg-white rounded-[12px]
                       shadow-[0px_1px_2px_rgba(0,0,0,0.25)]
                       border-2 outline-none transition-all
@@ -245,7 +258,7 @@ function VerifyOTPContent() {
                 type="submit"
                 id="otp-submit"
                 disabled={isLoading || success || otpValue.length < OTP_LENGTH}
-                className="w-full max-w-[301px] h-[40px] bg-white text-black font-bold text-[12px] rounded-[50px] shadow-[0px_1px_2px_rgba(0,0,0,0.25)] hover:bg-gray-50 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full max-w-[301px] h-[46px] bg-[#2563eb] text-white font-bold text-[14px] rounded-[12px] hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(37,99,235,0.39)]"
               >
                 {isLoading ? (
                   <>

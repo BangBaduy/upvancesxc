@@ -19,15 +19,15 @@ interface EventCardProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Lomba: "bg-blue-600",
-  Seminar: "bg-purple-600",
-  Workshop: "bg-orange-500",
-  Beasiswa: "bg-green-600",
-  Magang: "bg-teal-600",
-  Webinar: "bg-indigo-600",
-  Volunteer: "bg-lime-600",
-  Greenvity: "bg-emerald-700",
-  Lainnya: "bg-gray-500",
+  Lomba: "bg-blue-50 text-[#16558f] border-blue-200",
+  Seminar: "bg-purple-50 text-purple-700 border-purple-200",
+  Workshop: "bg-orange-50 text-orange-700 border-orange-200",
+  Beasiswa: "bg-green-50 text-green-700 border-green-200",
+  Magang: "bg-teal-50 text-teal-700 border-teal-200",
+  Webinar: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  Volunteer: "bg-lime-50 text-lime-700 border-lime-200",
+  Greenvity: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Lainnya: "bg-gray-50 text-gray-700 border-gray-200",
 };
 
 export default function EventCard({
@@ -42,39 +42,50 @@ export default function EventCard({
   category = "Lainnya",
   isOnline = false,
 }: EventCardProps) {
-  const catColor = CATEGORY_COLORS[category] ?? "bg-gray-500";
+  const catColor = CATEGORY_COLORS[category] ?? "bg-gray-50 text-gray-700 border-gray-200";
 
   return (
     <Link href={`/events/${id}`} className="block group">
       <div className="relative w-[306px] rounded-[20px] overflow-hidden shadow-[0px_4px_20px_rgba(0,0,0,0.12)] group-hover:shadow-[0px_8px_32px_rgba(37,99,235,0.25)] group-hover:-translate-y-1 transition-all duration-300 bg-white flex flex-col">
         
         {/* Image Section */}
-        <div className="relative w-full h-[200px] overflow-hidden bg-gray-100">
+        <div className="relative w-full h-[200px] overflow-hidden bg-[#f1f5f9]">
+          {/* Blurred Background to fill empty spaces for different aspect ratios */}
+          <Image
+            src={image}
+            alt=""
+            fill
+            className="object-cover blur-lg opacity-40 scale-110"
+            aria-hidden="true"
+          />
+          
+          {/* Main Poster Image - Contained to show full content */}
           <Image
             src={image}
             alt={title}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-contain relative z-10 transition-transform duration-500"
             sizes="306px"
           />
-          {/* Gradient overlay bottom */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+          
+          {/* Gradient overlay bottom - behind text but above images */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent z-20" />
 
           {/* Category badge — top left */}
-          <span className={`absolute top-3 left-3 ${catColor} text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md`}>
+          <span className={`absolute top-3 left-3 ${catColor} border text-[11px] font-bold px-3 py-1 rounded-full shadow-md z-30`}>
             {category}
           </span>
 
           {/* Verified badge — top right */}
           {isVerified && (
-            <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm text-[#2563eb] text-[11px] font-bold px-2 py-1 rounded-full shadow">
+            <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm text-[#2563eb] text-[11px] font-bold px-2 py-1 rounded-full shadow z-30">
               <CheckCircle2 className="w-3 h-3" />
               Verified
             </div>
           )}
 
           {/* Price — bottom left overlay */}
-          <div className="absolute bottom-3 left-3">
+          <div className="absolute bottom-3 left-3 z-30">
             <span className={`text-[12px] font-bold px-3 py-1 rounded-full ${
               price === "Gratis"
                 ? "bg-green-500 text-white"

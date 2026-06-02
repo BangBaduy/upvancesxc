@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import {
   User, Camera, Save, Loader2, CheckCircle2, AlertCircle, ArrowLeft,
-  Building2, BookOpen, Hash, Phone, Linkedin, Globe, FileText
+  Building2, BookOpen, Hash, Phone, Linkedin, Globe, FileText, ChevronRight
 } from "lucide-react";
 
 type ProfileForm = {
@@ -39,29 +39,31 @@ export default function ProfileSettingsPage() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) { router.replace("/login?next=/settings/profile"); return; }
-      setEmail(data.user.email ?? "");
+      if (data.user) {
+        setEmail(data.user.email ?? "");
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", data.user.id)
-        .maybeSingle();
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", data.user.id)
+          .maybeSingle();
 
-      if (profile) {
-        setForm({
-          full_name: profile.full_name || (data.user.user_metadata?.full_name as string) || "",
-          avatar_url: profile.avatar_url || (data.user.user_metadata?.avatar_url as string) || "",
-          bio: profile.bio || "",
-          phone_number: profile.phone_number || "",
-          linkedin_url: profile.linkedin_url || "",
-          portfolio_url: profile.portfolio_url || "",
-          institution: profile.institution || "",
-          major: profile.major || "",
-          semester: profile.semester ? String(profile.semester) : "",
-        });
-        setPoints(profile.points ?? 0);
+        if (profile) {
+          setForm({
+            full_name: profile.full_name || (data.user.user_metadata?.full_name as string) || "",
+            avatar_url: profile.avatar_url || (data.user.user_metadata?.avatar_url as string) || "",
+            bio: profile.bio || "",
+            phone_number: profile.phone_number || "",
+            linkedin_url: profile.linkedin_url || "",
+            portfolio_url: profile.portfolio_url || "",
+            institution: profile.institution || "",
+            major: profile.major || "",
+            semester: profile.semester ? String(profile.semester) : "",
+          });
+          setPoints(profile.points ?? 0);
+        }
       }
+      // Stop loading regardless of whether user exists
       setIsLoading(false);
     });
   }, [router]);
@@ -102,9 +104,24 @@ export default function ProfileSettingsPage() {
   const displayName = form.full_name || email.split("@")[0] || "Pengguna";
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['Inter',sans-serif]">
+    <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
       <Header />
-      <main className="pt-[95px] pb-16 px-4 max-w-[700px] mx-auto">
+
+      {/* Background Layer */}
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
+        <div className="absolute inset-0 w-full h-full">
+          <Image 
+            src="/Background.png" 
+            alt="" 
+            fill 
+            className="object-cover opacity-80 object-top" 
+            priority 
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-[#f8fafc]/40 to-[#f8fafc]" />
+        </div>
+      </div>
+
+      <main className="pt-[100px] md:pt-[110px] pb-16 px-4 max-w-[700px] mx-auto relative z-10">
         <Link href="/dashboard" className="inline-flex items-center gap-2 text-[#2563eb] font-semibold mb-6 hover:underline">
           <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard
         </Link>
@@ -113,9 +130,9 @@ export default function ProfileSettingsPage() {
           {/* Header gradient with avatar */}
           <div className="bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] px-8 py-8 flex flex-col items-center gap-4">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full overflow-hidden bg-white/20 border-4 border-white shadow-lg flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-white/20 border-4 border-white shadow-lg flex items-center justify-center relative">
                 {form.avatar_url ? (
-                  <Image src={form.avatar_url} alt={displayName} fill className="object-cover" sizes="96px" />
+                  <img src={form.avatar_url} alt={displayName} className="w-full h-full object-cover" />
                 ) : (
                   <User className="w-10 h-10 text-white" />
                 )}
@@ -159,7 +176,7 @@ export default function ProfileSettingsPage() {
                 </Field>
                 <Field label="Bio" icon={<FileText className="w-4 h-4" />}>
                   <textarea value={form.bio} onChange={set("bio")} placeholder="Ceritakan tentang dirimu..." rows={3} maxLength={200}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-[10px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] transition-all resize-none" />
+                    className="w-full px-4 py-3 border border-gray-200 rounded-[10px] text-[14px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] transition-all resize-none" />
                 </Field>
               </div>
             </div>
@@ -203,9 +220,13 @@ export default function ProfileSettingsPage() {
               {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</> : <><Save className="w-4 h-4" /> Simpan Perubahan</>}
             </button>
 
-            <Link href="/onboarding?edit=true" className="text-center text-[13px] text-[#2563eb] hover:underline">
-              Ubah minat & tujuan →
-            </Link>
+            <div className="mt-4 pt-6 border-t border-gray-100 flex flex-col items-center">
+              <Link href="/onboarding?edit=true" className="text-[14px] font-bold text-[#2563eb] hover:underline flex items-center gap-2">
+                Ubah minat & tujuan eksplorasi kamu
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+              <p className="text-[12px] text-gray-500 mt-1">Sesuaikan rekomendasi acara berdasarkan ketertarikanmu.</p>
+            </div>
           </form>
         </div>
       </main>
@@ -213,7 +234,7 @@ export default function ProfileSettingsPage() {
   );
 }
 
-const inputClass = "w-full h-[44px] px-4 border border-gray-200 rounded-[10px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] transition-all";
+const inputClass = "w-full h-[44px] px-4 border border-gray-200 rounded-[10px] text-[14px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] transition-all";
 
 function Field({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (

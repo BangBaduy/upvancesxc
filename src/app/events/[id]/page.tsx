@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import Header from "@/components/organism/Header";
+import Footer from "@/components/organism/Footer";
 import { createClient } from "@/lib/supabase/client";
 import {
   CheckCircle2,
@@ -143,46 +144,22 @@ export default function EventDetailPage() {
     window.open(calUrl, '_blank');
   };
 
-  const handleRegister = async () => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push(`/login?next=${encodeURIComponent(`/events/${id}`)}`);
-      return;
-    }
-    if (event?.event_url) window.open(event.event_url, '_blank');
-  };
-
-  // Loading State
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-white pt-[100px] pb-20 px-4 md:px-10">
-        <Header />
-        <div className="max-w-[1280px] mx-auto flex flex-col items-center justify-center py-20 gap-4">
-          <Loader2 className="w-10 h-10 text-[#2563eb] animate-spin" />
-          <p className="text-[#2563eb] font-medium">Memuat detail acara...</p>
-        </div>
+      <main className="min-h-screen pt-[100px] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-[#2563eb] animate-spin" />
       </main>
     );
   }
 
-  // Error State
   if (error || !event) {
     return (
-      <main className="min-h-screen bg-white pt-[100px] pb-20 px-4 md:px-10">
-        <Header />
-        <div className="max-w-[1280px] mx-auto flex flex-col items-center justify-center py-20 gap-4">
-          <AlertCircle className="w-12 h-12 text-red-400" />
-          <h1 className="text-2xl font-bold text-gray-800">
-            {error || "Acara tidak ditemukan"}
-          </h1>
-          <Link
-            href="/dashboard"
-            className="mt-4 px-6 py-2 bg-[#2563eb] text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Kembali ke Beranda
-          </Link>
-        </div>
+      <main className="min-h-screen pt-[100px] flex flex-col items-center justify-center px-4">
+        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+        <h1 className="text-xl font-bold text-gray-800 mb-4">{error || "Event tidak ditemukan"}</h1>
+        <Link href="/dashboard" className="px-6 py-2 bg-[#2563eb] text-white rounded-lg font-bold">
+          Kembali ke Beranda
+        </Link>
       </main>
     );
   }
@@ -191,227 +168,247 @@ export default function EventDetailPage() {
   const orgLogo = event.organizers?.org_logo_url ?? null;
 
   return (
-    <main className="min-h-screen bg-white pt-[100px] pb-20 px-4 md:px-10">
+    <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
       <Header />
 
-      <div className="max-w-[1280px] mx-auto">
+      {/* Background Layer */}
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
+        <div className="absolute inset-0 w-full h-full">
+          <Image 
+            src="/Background.png" 
+            alt="" 
+            fill 
+            className="object-cover opacity-80 object-top" 
+            priority 
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-[#f8fafc]/40 to-[#f8fafc]" />
+        </div>
+      </div>
+
+      <main className="pt-[100px] md:pt-[120px] pb-20 px-4 md:px-10 max-w-[1100px] mx-auto relative z-10">
         {/* Breadcrumb / Back Button */}
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 text-[#2563eb] font-semibold mb-8 hover:underline"
+          className="inline-flex items-center gap-2 text-[#2563eb] font-bold mb-8 hover:underline"
         >
           <ChevronLeft className="w-5 h-5" />
           Kembali ke Beranda
         </Link>
 
-        <div className="flex flex-col lg:flex-row gap-10">
-          {/* Left Column: Event Poster */}
-          <div className="w-full lg:w-[403px] shrink-0">
-            <div className="relative w-full aspect-[403/537] rounded-[20px] overflow-hidden shadow-lg bg-gray-100">
-              <Image
-                src={event.image_url ?? "/Logo.png"}
-                alt={event.title}
-                fill
-                className="object-cover"
-                priority
-                sizes="(max-width: 1024px) 100vw, 403px"
-              />
+        {/* ─── EVENT DETAIL BOX ─── */}
+        <div className="bg-white rounded-[32px] p-6 md:p-10 shadow-sm border border-gray-100">
+          <div className="flex flex-col lg:flex-row gap-10">
+            {/* Left Column: Event Poster */}
+            <div className="w-full lg:w-[403px] shrink-0">
+              <div className="rounded-[20px] overflow-hidden shadow-lg border border-gray-100 bg-[#f8fafc]">
+                <img
+                  src={event.image_url ?? "/Logo.png"}
+                  alt={event.title}
+                  className="w-full h-auto block"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Right Column: Event Info */}
-          <div className="flex-1 flex flex-col gap-6">
-            {/* Title and Verification */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <h1 className="text-[32px] font-bold text-[#161616] leading-tight">
-                  {event.title}
-                </h1>
-                {event.is_verified && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full shrink-0">
-                    <CheckCircle2 className="w-6 h-6 text-[#2563eb]" />
-                    <span className="text-[18px] font-bold text-[#2563eb]">
-                      Verified
+            {/* Right Column: Event Info */}
+            <div className="flex-1 flex flex-col gap-6">
+              {/* Title and Verification */}
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-[28px] md:text-[32px] font-bold text-[#161616] leading-tight">
+                    {event.title}
+                  </h1>
+                </div>
+
+                <div className="flex gap-2 flex-wrap items-center">
+                  {event.is_verified && (
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#2563eb] rounded-full border border-blue-100">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span className="text-[12px] font-bold uppercase">
+                        Verified
+                      </span>
+                    </div>
+                  )}
+                  {event.category && (
+                    <span className="px-4 py-1 bg-blue-100 border border-blue-200 rounded-full text-[12px] font-bold text-[#16558f]">
+                      {event.category}
+                    </span>
+                  )}
+                  {event.is_featured && (
+                    <span className="px-4 py-1 bg-yellow-50 border border-yellow-300 rounded-full text-[12px] font-semibold text-yellow-700">
+                      ⭐ Featured
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <hr className="border-gray-100" />
+
+              {/* Event Metadata Grid */}
+              <div className="grid grid-cols-2 gap-y-6 gap-x-4 py-2">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">
+                    Lokasi
+                  </span>
+                  <div className="flex items-center gap-2 text-[#161616]">
+                    {event.is_online ? (
+                      <Globe className="w-5 h-5 text-[#2563eb]" />
+                    ) : (
+                      <MapPin className="w-5 h-5 text-[#2563eb]" />
+                    )}
+                    <span className="text-[14px] font-semibold">
+                      {event.is_online
+                        ? "Online"
+                        : event.location ?? "Indonesia"}
                     </span>
                   </div>
-                )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">
+                    Mulai Acara
+                  </span>
+                  <div className="flex items-center gap-2 text-[#161616]">
+                    <Calendar className="w-5 h-5 text-[#2563eb]" />
+                    <span className="text-[14px] font-semibold">
+                      {formatDate(event.start_date)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">
+                    Deadline Daftar
+                  </span>
+                  <div className="flex items-center gap-2 text-[#ef4444]">
+                    <Calendar className="w-5 h-5" />
+                    <span className="text-[14px] font-bold">
+                      {formatDate(event.deadline)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">
+                    Biaya
+                  </span>
+                  <div className="flex items-center gap-2 text-[#161616]">
+                    <CircleDollarSign className="w-5 h-5 text-[#2563eb]" />
+                    <span className="text-[14px] font-semibold">
+                      {formatPrice(event.is_free, event.price)}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex gap-2 flex-wrap">
-                {event.category && (
-                  <span className="px-4 py-1 bg-[#eaf6ff] border border-black/10 rounded-full text-[13px] font-semibold">
-                    {event.category}
-                  </span>
-                )}
-                {event.is_featured && (
-                  <span className="px-4 py-1 bg-yellow-50 border border-yellow-300 rounded-full text-[13px] font-semibold text-yellow-700">
-                    ⭐ Featured
-                  </span>
-                )}
-              </div>
-            </div>
+              <hr className="border-gray-100" />
 
-            <hr className="border-black/10" />
-
-            {/* Event Metadata Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-2">
-              <div className="flex flex-col gap-2">
-                <span className="text-[16px] font-bold text-[#161616]">
-                  Lokasi
-                </span>
-                <div className="flex items-center gap-2 text-[#777]">
-                  {event.is_online ? (
-                    <Globe className="w-6 h-6 text-[#2563eb]" />
+              {/* Organizer Section */}
+              <div className="flex items-center gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                <div className="w-[50px] h-[50px] relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden shrink-0">
+                  {orgLogo ? (
+                    <Image
+                      src={orgLogo}
+                      alt={orgName}
+                      fill
+                      className="object-contain p-1"
+                      sizes="50px"
+                    />
                   ) : (
-                    <MapPin className="w-6 h-6 text-[#2563eb]" />
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                      <Image src="/Logo_Icon.png" alt="" fill className="object-contain opacity-20" />
+                    </div>
                   )}
-                  <span className="text-[13px] font-medium">
-                    {event.is_online
-                      ? "Online"
-                      : event.location ?? "Indonesia"}
-                  </span>
                 </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <span className="text-[16px] font-bold text-[#161616]">
-                  Mulai Acara
-                </span>
-                <div className="flex items-center gap-2 text-[#777]">
-                  <Calendar className="w-6 h-6 text-[#2563eb]" />
-                  <span className="text-[13px] font-medium">
-                    {formatDate(event.start_date)}
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    Diselenggarakan Oleh
                   </span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <span className="text-[16px] font-bold text-[#161616]">
-                  Deadline Pendaftaran
-                </span>
-                <div className="flex items-center gap-2 text-[#e53835]">
-                  <Calendar className="w-6 h-6" />
-                  <span className="text-[13px] font-medium font-bold">
-                    {formatDate(event.deadline)}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <span className="text-[16px] font-bold text-[#161616]">
-                  Pembayaran
-                </span>
-                <div className="flex items-center gap-2 text-[#0e0e0f]">
-                  <CircleDollarSign className="w-6 h-6 text-[#2563eb]" />
-                  <span className="text-[13px] font-medium">
-                    {formatPrice(event.is_free, event.price)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <hr className="border-black/10" />
-
-            {/* Organizer Section */}
-            <div className="flex items-center gap-4">
-              <div className="w-[63px] h-[69px] relative bg-gray-50 rounded overflow-hidden">
-                {orgLogo && (
-                  <Image
-                    src={orgLogo}
-                    alt={orgName}
-                    fill
-                    className="object-contain"
-                    sizes="63px"
-                  />
-                )}
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[16px] font-bold text-[#bababa]">
-                  Diselenggarakan Oleh
-                </span>
-                <span className="text-[20px] font-bold text-black">
-                  {orgName || "Penyelenggara"}
-                </span>
-              </div>
-            </div>
-
-            {/* Description Section */}
-            {event.description && (
-              <div className="flex flex-col gap-3 mt-4">
-                <h2 className="text-[20px] font-bold text-black">Deskripsi</h2>
-                <p className="text-[16px] text-[#777] leading-[1.6] text-justify whitespace-pre-line">
-                  {event.description}
-                </p>
-              </div>
-            )}
-
-            {/* Event URL / Booklet Link */}
-            {event.event_url && (
-              <a
-                href={event.event_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex rounded-[20px] overflow-hidden shadow-[0px_0px_5px_0px_rgba(0,0,0,0.25)] h-[58px] hover:shadow-md transition-shadow"
-              >
-                <div className="w-[158px] bg-[#23458f4d] flex items-center justify-center">
                   <span className="text-[16px] font-bold text-black">
-                    Link Acara
+                    {orgName || "Penyelenggara"}
                   </span>
                 </div>
-                <div className="flex-1 bg-[#acbde34d] flex items-center justify-between px-6">
-                  <span className="text-[16px] text-[#777] truncate">
-                    Buka halaman pendaftaran
-                  </span>
-                  <ExternalLink className="w-5 h-5 text-[#777] shrink-0" />
-                </div>
-              </a>
-            )}
+              </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-4 mt-8 self-end flex-wrap">
-              <button
-                onClick={handleBookmark}
-                disabled={bookmarkLoading}
-                className={`flex items-center gap-2 px-6 py-2 border rounded-lg font-bold transition-colors disabled:opacity-50 ${
-                  isBookmarked
-                    ? "border-[#2563eb] bg-[#2563eb] text-white"
-                    : "border-[#2563eb] text-[#2563eb] hover:bg-blue-50"
-                }`}
-              >
-                {isBookmarked ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
-                {isBookmarked ? "Tersimpan" : "Bookmark"}
-              </button>
-              <button
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({
-                      title: event.title,
-                      url: window.location.href,
-                    });
-                  } else {
-                    navigator.clipboard.writeText(window.location.href);
-                    alert("Link berhasil disalin!");
-                  }
-                }}
-                className="flex items-center gap-2 px-6 py-2 border border-[#2563eb] text-[#2563eb] rounded-lg font-bold hover:bg-blue-50 transition-colors"
-              >
-                <Share2 className="w-5 h-5" />
-                Bagikan
-              </button>
-              <button
-                onClick={handleAddToCalendar}
-                className="flex items-center gap-2 px-6 py-2 border border-green-600 text-green-700 rounded-lg font-bold hover:bg-green-50 transition-colors"
-              >
-                <CalendarPlus className="w-5 h-5" />
-                Simpan ke Kalender
-              </button>
-              <button
-                onClick={handleRegister}
-                className="px-10 py-2 bg-[#2563eb] text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
-              >
-                Daftar Sekarang
-              </button>
+              {/* Description Section */}
+              {event.description && (
+                <div className="flex flex-col gap-3 mt-2">
+                  <h2 className="text-[18px] font-bold text-black">Deskripsi</h2>
+                  <p className="text-[15px] text-[#4b5563] leading-[1.7] text-justify whitespace-pre-line">
+                    {event.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Event URL / Booklet Link */}
+              {event.event_url && (
+                <a
+                  href={event.event_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex rounded-2xl overflow-hidden border border-blue-100 shadow-sm h-[58px] hover:shadow-md transition-shadow"
+                >
+                  <div className="w-[140px] bg-[#2563eb]/10 flex items-center justify-center border-r border-blue-100">
+                    <span className="text-[14px] font-bold text-[#2563eb]">
+                      Link Acara
+                    </span>
+                  </div>
+                  <div className="flex-1 bg-white flex items-center justify-between px-6">
+                    <span className="text-[14px] text-gray-500 truncate font-medium">
+                      Buka halaman pendaftaran luar
+                    </span>
+                    <ExternalLink className="w-5 h-5 text-gray-400 shrink-0" />
+                  </div>
+                </a>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3 mt-6 justify-end">
+                <button
+                  onClick={handleBookmark}
+                  disabled={bookmarkLoading}
+                  className={`h-11 flex items-center gap-2 px-6 border rounded-xl font-bold text-[14px] transition-all disabled:opacity-50 ${
+                    isBookmarked
+                      ? "border-[#2563eb] bg-[#2563eb] text-white shadow-md shadow-blue-100"
+                      : "border-gray-200 bg-white text-gray-600 hover:border-[#2563eb] hover:text-[#2563eb]"
+                  }`}
+                >
+                  {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                  {isBookmarked ? "Tersimpan" : "Bookmark"}
+                </button>
+                <button
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: event.title,
+                        url: window.location.href,
+                      });
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                      alert("Link berhasil disalin!");
+                    }
+                  }}
+                  className="h-11 flex items-center gap-2 px-6 border border-gray-200 bg-white text-gray-600 rounded-xl font-bold text-[14px] hover:border-[#2563eb] hover:text-[#2563eb] transition-all"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Bagikan
+                </button>
+                <button
+                  onClick={handleAddToCalendar}
+                  className="h-11 flex items-center gap-2 px-6 border border-gray-200 bg-white text-[#16c475] rounded-xl font-bold text-[14px] hover:border-[#16c475] hover:bg-green-50 transition-all"
+                >
+                  <CalendarPlus className="w-4 h-4" />
+                  Simpan Kalender
+                </button>
+                <Link
+                  href={`/events/${id}/register`}
+                  className="h-11 px-10 bg-[#2563eb] text-white rounded-xl font-bold text-[14px] hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center"
+                >
+                  Daftar Sekarang
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+      
+      <Footer />
+    </div>
   );
 }

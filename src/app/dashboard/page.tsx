@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Header from "@/components/organism/Header";
+import Footer from "@/components/organism/Footer";
 import EventCard from "@/components/molecules/EventCard";
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, X } from "lucide-react";
 import type { Database } from "@/types";
@@ -17,7 +18,7 @@ interface EventsApiResponse {
   error: string | null;
 }
 
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 6;
 
 // Semua kategori yang tersedia
 const ALL_CATEGORIES: { label: string; value: EventCategory; color: string; segment: "umum" | "green" }[] = [
@@ -46,7 +47,7 @@ function DashboardContent() {
   const [error, setError] = useState<string | null>(null);
 
   // Filter state
-  const [activeSegment, setActiveSegment] = useState<"rekomendasi" | "all" | "umum" | "green">("rekomendasi");
+  const [activeSegment, setActiveSegment] = useState<"rekomendasi" | "all" | "umum" | "green" | "saved">("rekomendasi");
   const [selectedCategories, setSelectedCategories] = useState<Set<EventCategory>>(new Set());
   const [isFreeOnly, setIsFreeOnly] = useState(false);
   const [userInterests, setUserInterests] = useState<EventCategory[]>([]);
@@ -74,6 +75,32 @@ function DashboardContent() {
     setIsLoading(true);
     setError(null);
     try {
+      // Jika segment 'saved', fetch dari endpoint bookmarks
+      if (segment === "saved") {
+        const res = await fetch(`/api/bookmarks`);
+        const json = await res.json();
+        if (!res.ok || json.error) { setError(json.error || "Gagal memuat bookmark"); setEvents([]); setMeta(null); return; }
+        
+        // Map bookmarks to event rows (bookmarks response is { data: [ { events: { ... } } ] })
+        const bookmarkedEvents = json.data?.map((b: any) => b.events) || [];
+        
+        // Client-side filtering for search/free/categories if needed on saved items
+        let filtered = bookmarkedEvents;
+        if (search) {
+          filtered = filtered.filter((e: any) => e.title.toLowerCase().includes(search.toLowerCase()));
+        }
+        if (freeOnly) {
+          filtered = filtered.filter((e: any) => e.is_free || e.price === 0);
+        }
+        if (cats.size > 0) {
+          filtered = filtered.filter((e: any) => cats.has(e.category));
+        }
+
+        setEvents(filtered);
+        setMeta({ total: filtered.length, page: 1, limit: 100, total_pages: 1 });
+        return;
+      }
+
       const params = new URLSearchParams({ page: String(currentPage), limit: String(ITEMS_PER_PAGE) });
       if (search) params.set("search", search);
       if (freeOnly) params.set("is_free", "true");
@@ -160,91 +187,134 @@ function DashboardContent() {
   const totalPages = meta?.total_pages ?? 1;
 
   return (
-    <div className="min-h-screen w-full relative bg-white font-['Inter',sans-serif]">
+    <div className="min-h-screen w-full relative font-['Inter',sans-serif] overflow-x-hidden">
       <Header />
-      <main className="pt-[110px] pb-20 px-4 md:px-10 relative z-10 min-h-screen">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <Image src="/Background.png" alt="Background Decor" fill className="object-cover opacity-100" priority sizes="100vw" />
+
+      {/* Background Layer */}
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
+        {/* Main Background Image with Fade */}
+        <div className="absolute inset-0 w-full h-full">
+          <Image 
+            src="/Background.png" 
+            alt="" 
+            fill 
+            className="object-cover opacity-80 object-top" 
+            priority 
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-[#f8fafc]/40 to-[#f8fafc]" />
         </div>
 
+        {/* Blur Ellipse from Figma 266:437 */}
+        <div className="absolute top-[659px] left-[-185px] w-[377px] h-[337px] rotate-[-5deg] opacity-10 md:opacity-40">
+          <div className="w-full h-full bg-gradient-to-br from-[#2563eb]/30 to-[#14cb72]/30 rounded-full blur-[80px]" />
+        </div>
+      </div>
+
+      <main className="responsive-section pt-[110px] pb-20 relative z-10 min-h-screen">
         <div className="max-w-[1280px] mx-auto relative z-10">
           {/* Title */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-10">
             {isLoading ? (
-              <div className="h-[44px] w-[400px] mx-auto bg-gray-200 animate-pulse rounded-lg" />
+              <div className="h-[44px] w-[280px] md:w-[400px] mx-auto bg-gray-200 animate-pulse rounded-lg" />
             ) : error ? null : (
-              <h1 className="text-[36px] font-bold text-[#3e74eb] max-w-[557px] mx-auto leading-tight">
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-[#3e74eb] max-w-[800px] mx-auto !mb-0 leading-tight">
                 {searchQuery
                   ? `Hasil pencarian "${searchQuery}"`
+                  : activeSegment === "saved"
+                  ? "🔖 Acara Tersimpan Kamu"
                   : activeSegment === "green"
                   ? "🌿 Acara Green & Volunteer"
                   : activeSegment === "umum"
                   ? "🎓 Acara Umum Mahasiswa"
-                  : `Ada ${totalEvents} Acara untuk kamu`}
+                  : `Ada ${totalEvents} Kompetisi yang 100% cocok dengan profil kamu`}
               </h1>
             )}
           </div>
 
-          {/* ─── FILTER SECTION ─── */}
-          <div className="mb-10 flex flex-col gap-4">
-            {/* Segment tabs */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {[
-                { label: "Untukmu ✨",        value: "rekomendasi" as const },
-                { label: "Semua",             value: "all"         as const },
-                { label: "Umum",              value: "umum"        as const },
-                { label: "Green & Volunteer", value: "green"       as const },
-              ].map((seg) => (
-                <button
-                  key={seg.value}
-                  onClick={() => { setActiveSegment(seg.value); setSelectedCategories(new Set()); }}
-                  className={`px-4 py-2 rounded-full text-[13px] font-bold border transition-all ${
-                    activeSegment === seg.value
-                      ? seg.value === "green"
-                        ? "bg-green-600 text-white border-green-600"
-                        : "bg-[#2563eb] text-white border-[#2563eb]"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-[#2563eb] hover:text-[#2563eb]"
-                  }`}
-                >
-                  {seg.label}
-                </button>
-              ))}
-
-              {/* Gratis toggle */}
-              <button
-                onClick={() => setIsFreeOnly(p => !p)}
-                className={`px-4 py-2 rounded-full text-[13px] font-bold border transition-all ${
-                  isFreeOnly
-                    ? "bg-green-500 text-white border-green-500"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-green-500 hover:text-green-600"
-                }`}
-              >
-                Gratis
-              </button>
-
-              {hasFilter && (
-                <button onClick={clearFilters} className="flex items-center gap-1 px-3 py-2 text-[12px] text-red-500 hover:bg-red-50 rounded-full border border-red-200 transition-colors">
-                  <X className="w-3 h-3" /> Reset Filter
-                </button>
-              )}
+          {/* ─── NEW CLEAN FILTER UI (COMPACT) ─── */}
+          <div className="mb-8 space-y-4">
+            {/* Main Tabs Segment */}
+            <div className="flex justify-center">
+              <div className="inline-flex p-0.5 bg-gray-100/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
+                {[
+                  { label: "Untukmu",        value: "rekomendasi" as const },
+                  { label: "Semua",             value: "all"         as const },
+                  { label: "Umum",              value: "umum"        as const },
+                  { label: "Green & Volunteer", value: "green"       as const },
+                  { label: "Bookmarks",      value: "saved"       as const },
+                ].map((seg) => (
+                  <button
+                    key={seg.value}
+                    onClick={() => { 
+                      setActiveSegment(seg.value); 
+                      if (seg.value === "green") {
+                        setSelectedCategories(new Set(GREEN_CATEGORIES));
+                      } else if (seg.value === "umum") {
+                        setSelectedCategories(new Set(UMUM_CATEGORIES));
+                      } else {
+                        setSelectedCategories(new Set());
+                      }
+                    }}
+                    className={`px-3 md:px-6 py-1.5 rounded-lg text-[13px] font-bold transition-all whitespace-nowrap ${
+                      activeSegment === seg.value
+                        ? "bg-white text-[#2563eb] shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {seg.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Category pills */}
-            <div className="flex flex-wrap gap-2">
-              {ALL_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.value}
-                  onClick={() => toggleCategory(cat.value)}
-                  className={`px-3 py-1 rounded-full text-[12px] font-semibold border transition-all ${
-                    selectedCategories.has(cat.value)
-                      ? "bg-[#2563eb] text-white border-[#2563eb] scale-105"
-                      : `${cat.color} hover:scale-105`
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
+            {/* Secondary Filters Bar */}
+            <div className="flex justify-center px-4">
+              <div className="max-w-[1000px] w-fit flex flex-col md:flex-row items-center gap-3 bg-white/50 border border-gray-200 p-2 rounded-xl shadow-sm backdrop-blur-sm overflow-hidden">
+                {/* Categories Scroller */}
+                <div className="w-full min-w-0 overflow-hidden">
+                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 px-1">
+                    {/* Gratis Toggle - Compact */}
+                    <button
+                      onClick={() => setIsFreeOnly(p => !p)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold border shrink-0 transition-all ${
+                        isFreeOnly
+                          ? "bg-green-500 text-white border-green-500 shadow-sm"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-green-400"
+                      }`}
+                    >
+                      Gratis
+                    </button>
+
+                    <div className="w-[1px] h-5 bg-gray-300 mx-0.5 shrink-0" />
+
+                    {ALL_CATEGORIES.map((cat) => (
+                      <button
+                        key={cat.value}
+                        onClick={() => toggleCategory(cat.value)}
+                        className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border shrink-0 transition-all ${
+                          selectedCategories.has(cat.value)
+                            ? "bg-[#2563eb] text-white border-[#2563eb] shadow-sm"
+                            : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick Reset */}
+                {hasFilter && (
+                  <button 
+                    onClick={clearFilters} 
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-red-500 hover:bg-red-50 rounded-full transition-colors shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Reset Filter</span>
+                    <span className="md:hidden">Reset</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -281,7 +351,7 @@ function DashboardContent() {
           {/* Events Grid */}
           {!isLoading && !error && events.length > 0 && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center mb-20">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center mb-20">
                 {events.map((event) => (
                   <EventCard
                     key={event.id}
@@ -317,6 +387,7 @@ function DashboardContent() {
           )}
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
@@ -324,3 +395,4 @@ function DashboardContent() {
 export default function DashboardPage() {
   return <Suspense fallback={null}><DashboardContent /></Suspense>;
 }
+

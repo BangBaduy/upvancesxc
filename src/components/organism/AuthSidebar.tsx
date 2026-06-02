@@ -39,10 +39,10 @@ export default function AuthSidebar() {
   return (
     <div className="hidden lg:flex lg:w-[450px] xl:w-[529px] relative flex-col bg-gradient-to-b from-[#2563eb] from-[20.673%] to-[#14cb72] p-8 xl:p-[50px] text-white overflow-hidden shrink-0 min-h-screen">
       {/* Logo Section */}
-      <div className="flex items-center mb-12 xl:mb-[60px] relative z-10">
+      <div className="flex items-center justify-center lg:justify-start mb-12 xl:mb-[60px] relative z-10">
         <div className="w-[150px] h-[60px] relative">
           <Image
-            src="/Logo.png"
+            src="/Logo_BW.png"
             alt="Upvance Logo"
             fill
             className="object-contain"

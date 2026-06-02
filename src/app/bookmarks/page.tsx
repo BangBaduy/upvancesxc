@@ -132,10 +132,24 @@ export default function BookmarksPage() {
   const categories = ["Semua", ...Array.from(new Set(bookmarks.map(b => b.event.category)))];
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['Inter',sans-serif]">
+    <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
       <Header />
 
-      <main className="pt-[85px] pb-16 px-4 max-w-[1100px] mx-auto">
+      {/* Background Layer */}
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
+        <div className="absolute inset-0 w-full h-full">
+          <Image 
+            src="/Background.png" 
+            alt="" 
+            fill 
+            className="object-cover opacity-80 object-top" 
+            priority 
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-[#f8fafc]/40 to-[#f8fafc]" />
+        </div>
+      </div>
+
+      <main className="pt-[85px] pb-16 px-4 max-w-[1100px] mx-auto relative z-10">
         {/* Page header */}
         <div className="flex items-center justify-between mb-6 mt-4">
           <div>
@@ -162,7 +176,7 @@ export default function BookmarksPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Cari event yang disimpan..."
-              className="w-full h-[42px] pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-[10px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] transition-all"
+              className="w-full h-[42px] pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-[10px] text-[14px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] transition-all"
             />
           </div>
 

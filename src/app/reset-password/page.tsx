@@ -8,42 +8,6 @@ import { Eye, EyeOff, Loader2, KeyRound, AlertCircle } from "lucide-react";
 import AuthSidebar from "@/components/organism/AuthSidebar";
 import { createClient } from "@/lib/supabase/client";
 
-function PasswordStrengthBar({ password }: { password: string }) {
-  const getStrength = () => {
-    if (!password) return { level: 0, label: "", color: "" };
-    let score = 0;
-    if (password.length >= 8) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-    if (score <= 1) return { level: 1, label: "Lemah", color: "bg-red-500" };
-    if (score === 2) return { level: 2, label: "Cukup", color: "bg-yellow-500" };
-    if (score === 3) return { level: 3, label: "Kuat", color: "bg-blue-500" };
-    return { level: 4, label: "Sangat Kuat", color: "bg-green-500" };
-  };
-
-  const { level, label, color } = getStrength();
-  if (!password) return null;
-
-  return (
-    <div className="flex flex-col gap-1 px-1">
-      <div className="flex gap-1">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-              i <= level ? color : "bg-black/10"
-            }`}
-          />
-        ))}
-      </div>
-      <p className={`text-[10px] font-semibold ${
-        level <= 1 ? "text-red-500" : level === 2 ? "text-yellow-600" : level === 3 ? "text-blue-600" : "text-green-600"
-      }`}>{label}</p>
-    </div>
-  );
-}
-
 function ResetPasswordContent() {
   const router = useRouter();
   const [form, setForm] = useState({ password: "", confirmPassword: "" });
@@ -52,317 +16,99 @@ function ResetPasswordContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  // State untuk session recovery dari hash fragment
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
-  // Saat halaman dimuat, baca hash fragment dari URL yang dikirim Supabase
-  // Format: /reset-password#access_token=xxx&refresh_token=yyy&type=recovery
   useEffect(() => {
     const handleHashSession = async () => {
       const hash = window.location.hash;
+      const supabase = createClient();
       if (!hash || hash.length < 2) {
-        // Tidak ada hash — cek apakah sudah ada session aktif
-        const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setSessionReady(true);
-        } else {
-          setSessionError(
-            "Link reset sudah kedaluwarsa atau tidak valid. Silakan minta link reset ulang."
-          );
-        }
+        if (user) setSessionReady(true);
+        else setSessionError("Link tidak valid. Silakan minta link reset baru.");
         return;
       }
-
-      // Parse hash fragment
       const params = new URLSearchParams(hash.substring(1));
       const accessToken = params.get("access_token");
       const refreshToken = params.get("refresh_token");
-      const type = params.get("type");
-
-      if (type !== "recovery" || !accessToken || !refreshToken) {
-        setSessionError(
-          "Link reset tidak valid. Silakan minta link reset ulang dari halaman Lupa Kata Sandi."
-        );
-        return;
-      }
-
-      // Set session menggunakan token dari hash
-      const supabase = createClient();
-      const { error: sessionErr } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-
-      if (sessionErr) {
-        console.error("[reset-password] setSession error:", sessionErr.message);
-        setSessionError(
-          "Sesi recovery gagal. Link mungkin sudah kedaluwarsa. Silakan minta link reset ulang."
-        );
-        return;
-      }
-
-      // Bersihkan hash dari URL agar tidak terlihat oleh user
+      if (!accessToken || !refreshToken) { setSessionError("Link tidak valid."); return; }
+      const { error: sessionErr } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      if (sessionErr) { setSessionError("Link kedaluwarsa."); return; }
       window.history.replaceState(null, "", window.location.pathname);
       setSessionReady(true);
     };
-
     handleHashSession();
   }, []);
 
-  const inputClass =
-    "w-full h-[40px] px-[20px] bg-white rounded-[50px] shadow-[0px_1px_2px_rgba(0,0,0,0.25)] border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none text-[12px] text-black placeholder:text-black/50 transition-all";
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setError(null);
-  };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => { setForm((prev) => ({ ...prev, [e.target.name]: e.target.value })); setError(null); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.password) { setError("Password wajib diisi"); return; }
     if (form.password.length < 8) { setError("Password minimal 8 karakter"); return; }
-    if (form.password !== form.confirmPassword) {
-      setError("Password dan konfirmasi tidak cocok");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
+    if (form.password !== form.confirmPassword) { setError("Password tidak cocok"); return; }
+    setIsLoading(true); setError(null);
     try {
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: form.password, confirmPassword: form.confirmPassword }),
+        body: JSON.stringify({ password: form.password }),
       });
-
       const json = await res.json();
-
-      if (!res.ok || json.error) {
-        setError(json.error || "Gagal mengubah password. Coba lagi.");
-        setIsLoading(false);
-        return;
-      }
-
-      setSuccess(true);
-      setTimeout(() => router.push("/login"), 3000);
+      if (!res.ok || json.error) { setError(json.error || "Gagal mengubah password."); setIsLoading(false); return; }
+      setSuccess(true); setTimeout(() => router.push("/login"), 3000);
     } catch {
-      setError("Gagal terhubung ke server. Periksa koneksi internet kamu.");
-      setIsLoading(false);
+      setError("Gagal terhubung ke server."); setIsLoading(false);
     }
   };
 
-  // State: Session error (link expired / invalid)
-  if (sessionError) {
-    return (
-      <div className="min-h-screen w-full flex bg-[#F8FAFC] overflow-x-hidden font-['Inter',sans-serif]">
-        <div className="flex-1 lg:flex-none w-full lg:max-w-full flex min-h-screen relative overflow-hidden">
-          <AuthSidebar />
-          <div className="flex-1 relative flex items-center justify-center p-6 lg:p-12 overflow-hidden bg-white min-h-screen">
-            <div className="absolute inset-0 z-0">
-              <Image src="/background-auth.png" alt="Background" fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 60vw" />
-            </div>
-            <div className="w-full max-w-[450px] bg-[#D9D9D9]/80 backdrop-blur-xl rounded-[25px] p-8 md:p-12 shadow-[0px_40px_40px_0px_rgba(0,0,0,0.24),0px_10px_22px_0px_rgba(0,0,0,0.27)] relative z-10 flex flex-col items-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-5">
-                <AlertCircle className="w-8 h-8 text-red-500" />
-              </div>
-              <h2 className="text-[24px] font-bold text-center text-black mb-2">Link Tidak Valid</h2>
-              <p className="text-[13px] text-black/60 text-center mb-6 max-w-[280px]">{sessionError}</p>
-              <Link href="/forgot-password" className="block w-full max-w-[301px]">
-                <button type="button" className="w-full h-[40px] bg-white text-black font-bold text-[12px] rounded-[50px] shadow-[0px_1px_2px_rgba(0,0,0,0.25)] hover:bg-gray-50 transition-all active:scale-[0.98]">
-                  Minta Link Baru
-                </button>
-              </Link>
-              <Link href="/login" className="mt-3 text-[12px] text-black/60 hover:text-blue-600 hover:underline transition-colors">
-                ← Kembali ke Login
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // State: Loading session
-  if (!sessionReady) {
-    return (
-      <div className="min-h-screen w-full flex bg-[#F8FAFC] overflow-x-hidden font-['Inter',sans-serif]">
-        <div className="flex-1 lg:flex-none w-full lg:max-w-full flex min-h-screen relative overflow-hidden">
-          <AuthSidebar />
-          <div className="flex-1 relative flex items-center justify-center p-6 lg:p-12 overflow-hidden bg-white min-h-screen">
-            <div className="absolute inset-0 z-0">
-              <Image src="/background-auth.png" alt="Background" fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 60vw" />
-            </div>
-            <div className="w-full max-w-[450px] bg-[#D9D9D9]/80 backdrop-blur-xl rounded-[25px] p-8 md:p-12 shadow-[0px_40px_40px_0px_rgba(0,0,0,0.24),0px_10px_22px_0px_rgba(0,0,0,0.27)] relative z-10 flex flex-col items-center">
-              <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-              <p className="text-[13px] text-black/60 text-center">Memverifikasi link reset password...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const inputClass = "w-full h-[46px] px-[20px] bg-white rounded-[12px] border border-gray-200 focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/10 outline-none text-[14px] text-gray-900 transition-all";
 
   return (
     <div className="min-h-screen w-full flex bg-[#F8FAFC] overflow-x-hidden font-['Inter',sans-serif]">
       <div className="flex-1 lg:flex-none w-full lg:max-w-full flex min-h-screen relative overflow-hidden">
         <AuthSidebar />
 
-        {/* Form Section */}
-        <div className="flex-1 relative flex items-center justify-center p-6 lg:p-12 overflow-hidden bg-white min-h-screen">
-          {/* Background Image */}
-          <div className="absolute inset-0 z-0">
-            <Image
-              src="/background-auth.png"
-              alt="Background"
-              fill
-              className="object-cover"
-              priority
-              sizes="(max-width: 1024px) 100vw, 60vw"
-            />
+        <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-12 overflow-y-auto bg-white min-h-screen">
+          <div className="lg:hidden mb-8 z-20">
+            <Link href="/"><div className="w-[120px] h-[48px] relative"><Image src="/Logo.png" alt="Upvance Logo" fill className="object-contain" /></div></Link>
           </div>
 
-          {/* Decorative Shapes */}
-          <div className="absolute top-[5%] right-[2%] w-[15vw] max-w-[200px] aspect-square bg-gradient-to-br from-yellow-400/20 to-transparent rounded-full blur-2xl pointer-events-none z-0" />
-          <div className="absolute bottom-[5%] right-[2%] w-[18vw] max-w-[250px] aspect-square bg-gradient-to-tr from-blue-400/10 to-transparent rounded-full blur-3xl pointer-events-none z-0" />
-          <div className="absolute top-[8%] left-[10%] w-[18vw] max-w-[300px] aspect-square bg-gradient-to-bl from-green-400/10 to-transparent rounded-full blur-3xl pointer-events-none z-0" />
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            <Image src="/background-auth.png" alt="Background" fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 60vw" />
+          </div>
 
-          {/* Card */}
-          <div className="w-full max-w-[450px] bg-[#D9D9D9]/80 backdrop-blur-xl rounded-[25px] p-8 md:p-12 shadow-[0px_40px_40px_0px_rgba(0,0,0,0.24),0px_10px_22px_0px_rgba(0,0,0,0.27)] relative z-10 flex flex-col items-center">
-            {/* Icon */}
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-5">
-              <KeyRound className="w-8 h-8 text-blue-600" />
-            </div>
-
-            <h2 className="text-[24px] font-bold text-center text-black mb-2">
-              Buat Kata Sandi Baru
-            </h2>
-            <p className="text-[13px] text-black/60 text-center mb-6 max-w-[280px]">
-              {success
-                ? "Password berhasil diubah! Mengarahkan ke halaman login..."
-                : "Masukkan kata sandi baru untuk akunmu. Gunakan kombinasi huruf, angka, dan simbol."}
-            </p>
-
-            {/* Success State */}
-            {success ? (
-              <div className="w-full max-w-[301px]">
-                <div className="bg-green-50 border border-green-200 rounded-[10px] px-4 py-3 mb-4">
-                  <p className="text-[12px] text-green-700 text-center font-semibold">
-                    ✅ Kata sandi berhasil diubah!
-                  </p>
-                </div>
-                <Link href="/login" className="block w-full">
-                  <button
-                    type="button"
-                    className="w-full h-[40px] bg-white text-black font-bold text-[12px] rounded-[50px] shadow-[0px_1px_2px_rgba(0,0,0,0.25)] hover:bg-gray-50 transition-all"
-                  >
-                    Login Sekarang
-                  </button>
-                </Link>
-              </div>
+          <div className="w-full max-w-[450px] bg-white/95 backdrop-blur-2xl border border-white/50 rounded-[25px] p-6 md:p-12 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] relative z-10 flex flex-col items-center">
+            {!sessionReady && !sessionError ? (
+               <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+            ) : sessionError ? (
+               <div className="flex flex-col items-center"><AlertCircle className="w-12 h-12 text-red-500 mb-4" /><p className="text-red-600 text-center mb-6">{sessionError}</p><Link href="/forgot-password" className="w-full"><button className="w-full h-[46px] bg-[#2563eb] text-white font-bold rounded-[12px]">Minta Link Baru</button></Link></div>
             ) : (
               <>
-                {error && (
-                  <div className="w-full max-w-[301px] bg-red-50 border border-red-200 rounded-[10px] px-3 py-2 mb-3">
-                    <p className="text-[11px] text-red-600 text-center">{error}</p>
-                  </div>
-                )}
+                <KeyRound className="w-12 h-12 text-blue-600 mb-5" />
+                <h2 className="text-[20px] md:text-[24px] font-bold text-center text-black mb-2">Buat Kata Sandi Baru</h2>
+                <p className="text-[12px] md:text-[13px] text-black/60 text-center mb-6 max-w-[280px]">
+                  {success ? "Password berhasil diubah!" : "Masukkan kata sandi baru untuk akunmu."}
+                </p>
 
-                <form
-                  onSubmit={handleSubmit}
-                  className="w-full max-w-[301px] flex flex-col gap-[15px]"
-                  noValidate
-                >
-                  {/* Password Baru */}
-                  <div className="flex flex-col gap-2">
+                {success ? (
+                  <Link href="/login" className="w-full"><button className="w-full h-[46px] bg-[#2563eb] text-white font-bold rounded-[12px]">Login Sekarang</button></Link>
+                ) : (
+                  <form onSubmit={handleSubmit} className="w-full max-w-[301px] flex flex-col gap-[15px]" noValidate>
+                    {error && <div className="bg-red-50 border border-red-200 rounded-[10px] px-3 py-2"><p className="text-[11px] text-red-600 text-center">{error}</p></div>}
                     <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        name="password"
-                        id="reset-password"
-                        placeholder="Kata Sandi Baru"
-                        value={form.password}
-                        onChange={handleChange}
-                        required
-                        disabled={isLoading}
-                        autoComplete="new-password"
-                        className={`${inputClass} pr-10`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                        tabIndex={-1}
-                        aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                      <input type={showPassword ? "text" : "password"} name="password" placeholder="Kata Sandi Baru" value={form.password} onChange={handleChange} required disabled={isLoading} className={`${inputClass} pr-10`} />
+                      <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
                     </div>
-                    <PasswordStrengthBar password={form.password} />
-                  </div>
-
-                  {/* Konfirmasi Password */}
-                  <div className="relative">
-                    <input
-                      type={showConfirm ? "text" : "password"}
-                      name="confirmPassword"
-                      id="reset-confirm-password"
-                      placeholder="Konfirmasi Kata Sandi"
-                      value={form.confirmPassword}
-                      onChange={handleChange}
-                      required
-                      disabled={isLoading}
-                      autoComplete="new-password"
-                      className={`${inputClass} pr-10 ${
-                        form.confirmPassword && form.confirmPassword !== form.password
-                          ? "border-red-300 focus:border-red-400"
-                          : form.confirmPassword && form.confirmPassword === form.password
-                          ? "border-green-400 focus:border-green-500"
-                          : ""
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirm((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                      tabIndex={-1}
-                      aria-label={showConfirm ? "Sembunyikan konfirmasi" : "Tampilkan konfirmasi"}
-                    >
-                      {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    <div className="relative">
+                      <input type={showConfirm ? "text" : "password"} name="confirmPassword" placeholder="Konfirmasi Kata Sandi" value={form.confirmPassword} onChange={handleChange} required disabled={isLoading} className={`${inputClass} pr-10`} />
+                      <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">{showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                    </div>
+                    <button type="submit" disabled={isLoading} className="w-full h-[46px] bg-[#2563eb] text-white font-bold rounded-[12px] hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                      {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Menyimpan...</span></> : "Simpan Kata Sandi"}
                     </button>
-                  </div>
-                  {form.confirmPassword && form.confirmPassword !== form.password && (
-                    <p className="text-[10px] text-red-500 -mt-2 px-1">Password tidak cocok</p>
-                  )}
-
-                  <button
-                    type="submit"
-                    id="reset-submit"
-                    disabled={isLoading}
-                    className="w-full h-[40px] bg-white text-black font-bold text-[12px] rounded-[50px] shadow-[0px_1px_2px_rgba(0,0,0,0.25)] hover:bg-gray-50 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Menyimpan...</span>
-                      </>
-                    ) : (
-                      "Simpan Kata Sandi Baru"
-                    )}
-                  </button>
-
-                  <div className="text-center">
-                    <Link
-                      href="/login"
-                      className="text-[12px] text-black/60 hover:text-blue-600 hover:underline transition-colors"
-                    >
-                      ← Kembali ke Login
-                    </Link>
-                  </div>
-                </form>
+                  </form>
+                )}
               </>
             )}
           </div>
@@ -373,9 +119,5 @@ function ResetPasswordContent() {
 }
 
 export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={null}>
-      <ResetPasswordContent />
-    </Suspense>
-  );
+  return <Suspense fallback={null}><ResetPasswordContent /></Suspense>;
 }

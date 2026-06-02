@@ -5,7 +5,7 @@ import { optimizeCookies } from './lib/supabase/cookie-optimizer'
 const AUTH_ROUTES = new Set([
   '/login', '/register', '/verify-otp', '/forgot-password', '/reset-password',
 ])
-const PROTECTED_PREFIXES = ['/main', '/settings', '/admin', '/onboarding', '/bookmarks']
+const PROTECTED_PREFIXES = ['/bookmarks']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
