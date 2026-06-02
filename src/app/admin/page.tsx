@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard, Users, Calendar, Bookmark, Clock, Plus,
   CheckCircle2, XCircle, LogOut, AlertCircle, Loader2, ShieldCheck,
-  Trash2, Eye, EyeOff, X, MapPin, Pencil, BarChart3
+  Trash2, Eye, EyeOff, X, MapPin, Pencil, BarChart3, Save
 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from 'recharts';
 
@@ -479,7 +479,7 @@ export default function AdminDashboardPage() {
                           data={chartsData.kategori}
                           cx="50%" cy="50%" innerRadius={60} outerRadius={85}
                           dataKey="value" stroke="none"
-                          label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          label={(props: any) => `${props.name} ${((props.percent || 0) * 100).toFixed(0)}%`}
                         >
                           {chartsData.kategori.map((entry: any, index: number) => {
                             const colors = ['#2563eb', '#16c475', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f43f5e', '#84cc16', '#64748b'];
@@ -526,7 +526,7 @@ export default function AdminDashboardPage() {
                           data={chartsData.minat}
                           cx="50%" cy="50%" innerRadius={55} outerRadius={85}
                           dataKey="value" stroke="none"
-                          label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          label={(props: any) => `${props.name} ${((props.percent || 0) * 100).toFixed(0)}%`}
                         >
                           {chartsData.minat.map((entry: any, index: number) => {
                             const colors = ['#8b5cf6', '#ec4899', '#f43f5e', '#3b82f6', '#14b8a6', '#f59e0b', '#10b981'];

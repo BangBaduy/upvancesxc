@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('user_certificates')
-      .insert({ user_id: user.id, title, url, issuer, issued_date })
+      .insert({ user_id: user.id, title, url, issuer, issued_date } as any)
       .select()
       .single();
 

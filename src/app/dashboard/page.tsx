@@ -66,8 +66,7 @@ function DashboardContent() {
                 setUserInterests(mapped.length > 0 ? mapped : UMUM_CATEGORIES);
               }
               setIsInterestsLoaded(true);
-            })
-            .catch(() => setIsInterestsLoaded(true));
+            }, () => setIsInterestsLoaded(true));
         } else {
           setIsInterestsLoaded(true);
         }

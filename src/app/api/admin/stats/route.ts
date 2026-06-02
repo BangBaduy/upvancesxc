@@ -7,7 +7,7 @@ export async function GET() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as { data: { role: string } | null }
     if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     // Hitung stats platform
@@ -33,7 +33,7 @@ export async function GET() {
     const minatCount: Record<string, number> = {}
 
     if (profiles) {
-      profiles.forEach(p => {
+      (profiles as any[]).forEach(p => {
         if (p.institution) kampusCount[p.institution] = (kampusCount[p.institution] || 0) + 1
         if (p.semester) semesterCount[p.semester] = (semesterCount[p.semester] || 0) + 1
         if (p.interests && Array.isArray(p.interests)) {
@@ -74,7 +74,7 @@ export async function GET() {
     }
 
     if (registrations) {
-      registrations.forEach(r => {
+      (registrations as any[]).forEach(r => {
         const ev = Array.isArray(r.events) ? r.events[0] : r.events
         if (ev) {
           if (ev.category) regKategori[ev.category] = (regKategori[ev.category] || 0) + 1

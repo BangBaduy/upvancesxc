@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import { optimizeCookieForClient } from '@/lib/supabase/cookie-optimizer'
+import { optimizeCookies } from '@/lib/supabase/cookie-optimizer'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
           avatar_url: (data.user.user_metadata?.avatar_url as string) || null,
           role: 'user',
           has_completed_onboarding: false,
-        } as never)
+        } as any)
         redirectTo = '/onboarding'
       } else if (!profile.has_completed_onboarding) {
         redirectTo = '/onboarding'
@@ -61,12 +61,11 @@ export async function GET(request: NextRequest) {
       const response = NextResponse.redirect(new URL(redirectTo, origin).toString())
 
       // Apply all cookies and optimize
-      for (const c of cookiesToApply) {
-        if (c.name.startsWith('sb-') && c.name.endsWith('-auth-token')) {
-          optimizeCookieForClient(c.value, response, c.options)
-        } else {
-          response.cookies.set({ name: c.name, value: c.value, ...c.options })
-        }
+      const projectId = process.env.NEXT_PUBLIC_SUPABASE_URL!.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || ''
+      const optimizedCookies = optimizeCookies(cookiesToApply, `sb-${projectId}-auth-token`)
+      
+      for (const c of optimizedCookies) {
+        response.cookies.set({ name: c.name, value: c.value, ...c.options })
       }
 
       return response

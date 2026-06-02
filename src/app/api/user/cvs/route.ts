@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('user_cvs')
-      .insert({ user_id: user.id, title, url })
+      .insert({ user_id: user.id, title, url } as any)
       .select()
       .single();
 

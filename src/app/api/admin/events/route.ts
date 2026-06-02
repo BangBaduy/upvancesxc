@@ -8,7 +8,7 @@ export async function GET() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as { data: { role: string } | null }
     if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const { data, error } = await supabase
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as { data: { role: string } | null }
     if (profile?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
         org_logo_url: organizer_logo_url?.trim() || null,
         is_verified: true,
         tier: 'free'
-      }).select('id').single()
+      } as any).select('id').single()
 
       if (orgData) {
-        organizer_id = orgData.id;
+        organizer_id = (orgData as any).id;
       } else if (orgError) {
         console.error('Failed to create organizer:', orgError)
       }
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       is_verified: true,
       is_featured: false,
       organizer_id: organizer_id,
-    } as never).select('id').single()
+    } as any).select('id').single()
 
     if (error) throw error
     return NextResponse.json({ data, success: true })

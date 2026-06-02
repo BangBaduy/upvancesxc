@@ -190,9 +190,9 @@ function CalendarContent() {
                   onClick={() => { 
                     setActiveSegment(seg.value); 
                     if (seg.value === "green") {
-                      setSelectedCategories(new Set(["Volunteer", "Greenvity"]));
+                      setSelectedCategories(new Set(["Volunteer", "Greenvity"] as any));
                     } else if (seg.value === "umum") {
-                      setSelectedCategories(new Set(UMUM_CATEGORIES.map(c => c.value)));
+                      setSelectedCategories(new Set(UMUM_CATEGORIES.map(c => c.value) as any));
                     } else {
                       setSelectedCategories(new Set());
                     }

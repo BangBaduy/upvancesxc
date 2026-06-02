@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       .insert({
         profile_id: user.id,
         event_id: event_id
-      });
+      } as any);
 
     if (error) {
       // Ignore unique constraint errors if they click multiple times

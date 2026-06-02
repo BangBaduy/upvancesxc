@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabase.from('bookmarks').insert({
         profile_id: user.id,
         event_id,
-      } as never)
+      } as any)
       if (error) throw error
       return NextResponse.json({ bookmarked: true, message: 'Event di-bookmark' })
     }
