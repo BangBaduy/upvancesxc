@@ -68,13 +68,9 @@ function ResetPasswordContent() {
     <div className="min-h-screen w-full flex bg-[#F8FAFC] overflow-x-hidden font-['Inter',sans-serif]">
       <div className="flex-1 lg:flex-none w-full lg:max-w-full flex min-h-screen relative overflow-hidden">
         <AuthSidebar />
+<div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-12 overflow-y-auto bg-white min-h-screen">
+  <div className="absolute inset-0 z-0 pointer-events-none">
 
-        <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-12 overflow-y-auto bg-white min-h-screen">
-          <div className="lg:hidden mb-8 z-20">
-            <Link href="/"><div className="w-[120px] h-[48px] relative"><Image src="/Logo.png" alt="Upvance Logo" fill className="object-contain" /></div></Link>
-          </div>
-
-          <div className="absolute inset-0 z-0 pointer-events-none">
             <Image src="/background-auth.png" alt="Background" fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 60vw" />
           </div>
 

@@ -155,21 +155,8 @@ function VerifyOTPContent() {
 
         {/* OTP Form Section */}
         <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-12 overflow-y-auto bg-white min-h-screen">
-          {/* Mobile Logo (Visible only on < lg) */}
-          <div className="lg:hidden mb-8 z-20">
-            <Link href="/">
-              <div className="w-[120px] h-[48px] relative">
-                <Image
-                  src="/Logo.png"
-                  alt="Upvance Logo"
-                  fill
-                  className="object-contain"
-                />
-              </div>
-            </Link>
-          </div>
+          {/* Decorative Shapes */}
 
-          {/* Background Image */}
           <div className="absolute inset-0 z-0 pointer-events-none">
             <Image
               src="/background-auth.png"
