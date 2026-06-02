@@ -1,23 +1,43 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { optimizeCookieForClient } from '@/lib/supabase/cookie-optimizer'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
 
   const rawNext = searchParams.get('next') ?? '/dashboard'
-  const safeNext =
-    rawNext.startsWith('/') && !rawNext.startsWith('//')
-      ? rawNext
-      : '/dashboard'
+  const safeNext = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard'
 
   if (code) {
-    const supabase = await createClient()
+    const cookieStore = cookies()
+    const cookiesToApply: any[] = []
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            cookiesToApply.push({ name, value, options })
+          },
+          remove(name: string, options: any) {
+            cookiesToApply.push({ name, value: '', options: { ...options, maxAge: 0 } })
+          },
+        },
+      }
+    )
+
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data.user) {
-      // Cek apakah profile sudah ada (trigger akan membuatnya otomatis)
-      // Jika tidak ada (edge case), buat manual
+      let redirectTo = safeNext
+
+      // Onboarding check
       const { data: profile } = await supabase
         .from('profiles')
         .select('has_completed_onboarding')
@@ -25,31 +45,31 @@ export async function GET(request: NextRequest) {
         .maybeSingle()
 
       if (!profile) {
-        // Fallback: trigger mungkin belum jalan, buat manual
-        const fullName =
-          (data.user.user_metadata?.full_name as string | undefined) ||
-          data.user.email?.split('@')[0] || null
-        const avatarUrl =
-          (data.user.user_metadata?.avatar_url as string | undefined) || null
-
+        const fullName = (data.user.user_metadata?.full_name as string) || data.user.email?.split('@')[0] || null
         await supabase.from('profiles').insert({
           id: data.user.id,
           full_name: fullName,
-          avatar_url: avatarUrl,
+          avatar_url: (data.user.user_metadata?.avatar_url as string) || null,
           role: 'user',
           has_completed_onboarding: false,
         } as never)
-
-        // User baru → onboarding
-        return NextResponse.redirect(new URL('/onboarding', origin).toString())
+        redirectTo = '/onboarding'
+      } else if (!profile.has_completed_onboarding) {
+        redirectTo = '/onboarding'
       }
 
-      // User sudah ada: cek apakah onboarding sudah selesai
-      if (!(profile as any).has_completed_onboarding) {
-        return NextResponse.redirect(new URL('/onboarding', origin).toString())
+      const response = NextResponse.redirect(new URL(redirectTo, origin).toString())
+
+      // Apply all cookies and optimize
+      for (const c of cookiesToApply) {
+        if (c.name.startsWith('sb-') && c.name.endsWith('-auth-token')) {
+          optimizeCookieForClient(c.value, response, c.options)
+        } else {
+          response.cookies.set({ name: c.name, value: c.value, ...c.options })
+        }
       }
 
-      return NextResponse.redirect(new URL(safeNext, origin).toString())
+      return response
     }
     console.error('[CALLBACK EXCHANGE ERROR]:', error)
   }

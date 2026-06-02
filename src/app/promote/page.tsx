@@ -3,7 +3,6 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import { Check, Mail, MessageCircle, Star, Zap, Crown, X, User, Calendar, ExternalLink, QrCode } from "lucide-react";
 
@@ -75,14 +74,13 @@ export default function PromotePage() {
 
   const handleContinueToWA = () => {
     const text = `Halo Upvance! Saya ingin konfirmasi pembayaran untuk paket: ${selectedTier.name}.%0A%0ADetail Acara:%0ANama: ${formData.eventName}%0APenyelenggara: ${formData.organizerName}%0ATanggal: ${formData.eventDate}%0ACatatan: ${formData.notes}`;
-    window.open(`https://wa.me/628123456789?text=${text}`, '_blank');
+    window.open(`https://wa.me/6283800499929xt}`, '_blank');
     setStep("success");
     setSelectedTier(null);
   };
 
   return (
-    <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
+    <div className="min-h-screen font-['Inter',sans-serif] bg-[#f8fafc] relative overflow-x-hidden">
 
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
@@ -172,7 +170,7 @@ export default function PromotePage() {
             
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
               <a 
-                href="mailto:manager@upvance.com" 
+                href="mailto:muhammadirfanali886@gmail.com"
                 className="flex items-center justify-center gap-3 px-8 py-4 bg-white text-[#2622ff] font-bold rounded-2xl hover:bg-blue-50 transition-all shadow-lg"
               >
                 <Mail className="w-5 h-5" />

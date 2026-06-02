@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import { Award, Search, Download, ExternalLink, Loader2, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -13,16 +12,24 @@ export default function CertificatesPage() {
   const [certificates, setCertificates] = useState<any[]>([]);
 
   useEffect(() => {
-    // Mock loading for UI preview
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    async function loadCerts() {
+      try {
+        const res = await fetch('/api/user/certificates');
+        const json = await res.json();
+        if (res.ok && json.data) {
+          setCertificates(json.data);
+        }
+      } catch (err) {
+        console.error("Failed to load Certificates");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadCerts();
   }, []);
 
   return (
     <div className="min-h-screen w-full font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
       
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">

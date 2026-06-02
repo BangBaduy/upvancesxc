@@ -73,7 +73,7 @@ export default function RegisterPage() {
               Daftarkan Akun Anda
             </h2>
 
-            <form onSubmit={handleSubmit} className="w-full max-w-[301px] flex flex-col gap-[13px]" noValidate>
+            <form onSubmit={handleSubmit} className="w-full sm:max-w-[320px] md:max-w-[360px] flex flex-col gap-[13px]" noValidate>
               <input type="text" name="full_name" placeholder="Nama Lengkap" value={form.full_name} onChange={handleChange} required disabled={isLoading} className={inputClass} />
               <input type="email" name="email" placeholder="Email" value={form.email} onChange={handleChange} required disabled={isLoading} className={inputClass} />
               
@@ -110,7 +110,7 @@ export default function RegisterPage() {
                 </button>
                 <div className="flex items-center gap-[17px]"><div className="h-[1px] flex-1 bg-black/10" /><span className="text-[12px] text-black font-normal">Atau</span><div className="h-[1px] flex-1 bg-black/10" /></div>
                 <Link href="/login" className="block w-full">
-                  <button type="button" className="w-full h-[46px] bg-white text-gray-700 border border-gray-200 font-bold text-[14px] rounded-[12px] hover:bg-gray-50 transition-all">Sudah punya akun? Masuk</button>
+                  <button type="button" className="w-full h-[46px] bg-white text-gray-700 border border-gray-200 font-bold text-[13px] md:text-[14px] rounded-[12px] hover:bg-gray-50 transition-all">Masuk ke akun yang sudah ada</button>
                 </Link>
                 <div className="grid grid-cols-2 gap-3">
                   <button type="button" onClick={handleGoogleLogin} className="h-[46px] flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-[12px] hover:bg-gray-50 transition-all">

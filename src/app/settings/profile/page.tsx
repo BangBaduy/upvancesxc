@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import Header from "@/components/organism/Header";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import {
@@ -73,6 +72,11 @@ export default function ProfileSettingsPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.avatar_url?.trim().startsWith("data:image/")) {
+      setStatus({ type: "error", message: "URL foto profil tidak boleh menggunakan format base64 (data:image/...)" });
+      return;
+    }
+    
     setIsSaving(true);
     setStatus(null);
     try {
@@ -105,8 +109,6 @@ export default function ProfileSettingsPage() {
 
   return (
     <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
-
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
         <div className="absolute inset-0 w-full h-full">

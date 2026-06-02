@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import EventCard from "@/components/molecules/EventCard";
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, X } from "lucide-react";
@@ -45,6 +44,7 @@ function DashboardContent() {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInterestsLoaded, setIsInterestsLoaded] = useState(false);
 
   // Filter state
   const [activeSegment, setActiveSegment] = useState<"rekomendasi" | "all" | "umum" | "green" | "saved">("rekomendasi");
@@ -65,9 +65,13 @@ function DashboardContent() {
                 const mapped = profile.interests.filter((i: string) => ALL_CATEGORIES.some(c => c.value === i)) as EventCategory[];
                 setUserInterests(mapped.length > 0 ? mapped : UMUM_CATEGORIES);
               }
-            });
+              setIsInterestsLoaded(true);
+            })
+            .catch(() => setIsInterestsLoaded(true));
+        } else {
+          setIsInterestsLoaded(true);
         }
-      });
+      }).catch(() => setIsInterestsLoaded(true));
     });
   }, []);
 
@@ -169,7 +173,10 @@ function DashboardContent() {
   }, []);
 
   useEffect(() => { setPage(1); }, [searchQuery, selectedCategories, isFreeOnly, activeSegment, userInterests]);
-  useEffect(() => { fetchEvents(page, searchQuery, selectedCategories, isFreeOnly, activeSegment, userInterests); }, [page, searchQuery, selectedCategories, isFreeOnly, activeSegment, userInterests, fetchEvents]);
+  useEffect(() => { 
+    if (activeSegment === "rekomendasi" && !isInterestsLoaded) return;
+    fetchEvents(page, searchQuery, selectedCategories, isFreeOnly, activeSegment, userInterests); 
+  }, [page, searchQuery, selectedCategories, isFreeOnly, activeSegment, userInterests, fetchEvents, isInterestsLoaded]);
 
   const toggleCategory = (cat: EventCategory) => {
     setSelectedCategories(prev => {
@@ -188,8 +195,6 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen w-full relative font-['Inter',sans-serif] overflow-x-hidden">
-      <Header />
-
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
         {/* Main Background Image with Fade */}
@@ -371,15 +376,13 @@ function DashboardContent() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-10">
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
-                    className="flex items-center gap-2 bg-white border border-[#2563eb] text-[#2563eb] px-6 py-2 rounded-lg font-bold hover:bg-blue-50 transition-colors w-[179px] h-[36px] justify-center shadow disabled:opacity-40 disabled:cursor-not-allowed">
-                    <ChevronLeft className="w-5 h-5" /><span>Sebelumnya</span>
+                <div className="flex justify-center items-center gap-4 py-8">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                    <ChevronLeft className="w-5 h-5 text-gray-700" />
                   </button>
-                  <span className="text-[14px] text-gray-500 font-medium">Halaman {page} dari {totalPages}</span>
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                    className="flex items-center gap-2 bg-white border border-[#2563eb] text-[#2563eb] px-6 py-2 rounded-lg font-bold hover:bg-blue-50 transition-colors w-[179px] h-[36px] justify-center shadow disabled:opacity-40 disabled:cursor-not-allowed">
-                    <span>Selanjutnya</span><ChevronRight className="w-5 h-5" />
+                  <span className="text-[14px] text-gray-500 font-medium">{page} / {totalPages}</span>
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                    <ChevronRight className="w-5 h-5 text-gray-700" />
                   </button>
                 </div>
               )}

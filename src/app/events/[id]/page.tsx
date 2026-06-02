@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -168,9 +167,7 @@ export default function EventDetailPage() {
   const orgLogo = event.organizers?.org_logo_url ?? null;
 
   return (
-    <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
-
+    <div className="min-h-screen font-['Inter',sans-serif] bg-[#f8fafc] relative overflow-x-hidden">
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
         <div className="absolute inset-0 w-full h-full">
@@ -338,24 +335,24 @@ export default function EventDetailPage() {
 
               {/* Event URL / Booklet Link */}
               {event.event_url && (
-                <a
-                  href={event.event_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex rounded-2xl overflow-hidden border border-blue-100 shadow-sm h-[58px] hover:shadow-md transition-shadow"
+                <Link
+                  href={`/events/${id}/register`}
+                  className="flex rounded-2xl overflow-hidden shadow-sm h-[58px] hover:shadow-md transition-shadow bg-gradient-to-r from-[#2563eb] via-[#16c475] to-[#f8fafc] p-[1.5px]"
                 >
-                  <div className="w-[140px] bg-[#2563eb]/10 flex items-center justify-center border-r border-blue-100">
-                    <span className="text-[14px] font-bold text-[#2563eb]">
-                      Link Acara
-                    </span>
+                  <div className="flex w-full h-full bg-white rounded-[14px] overflow-hidden">
+                    <div className="w-[140px] bg-gradient-to-r from-[#2563eb]/10 to-[#16c475]/10 flex items-center justify-center border-r border-gray-100">
+                      <span className="text-[14px] font-bold text-[#2563eb]">
+                        Link Acara
+                      </span>
+                    </div>
+                    <div className="flex-1 flex items-center justify-between px-6 bg-white/60">
+                      <span className="text-[14px] text-gray-700 truncate font-semibold">
+                        Buka halaman pendaftaran acara
+                      </span>
+                      <ExternalLink className="w-5 h-5 text-[#16c475] shrink-0" />
+                    </div>
                   </div>
-                  <div className="flex-1 bg-white flex items-center justify-between px-6">
-                    <span className="text-[14px] text-gray-500 truncate font-medium">
-                      Buka halaman pendaftaran luar
-                    </span>
-                    <ExternalLink className="w-5 h-5 text-gray-400 shrink-0" />
-                  </div>
-                </a>
+                </Link>
               )}
 
               {/* Action Buttons */}

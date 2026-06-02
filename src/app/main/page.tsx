@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -21,6 +20,7 @@ export default function UserDashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activityData, setActivityData] = useState<number[]>(new Array(7).fill(0));
+  const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -28,22 +28,22 @@ export default function UserDashboard() {
       if (data.user) {
         setUser(data.user);
         
-        // Fetch profile and activity (bookmarks) in parallel
         Promise.all([
           supabase.from('profiles').select('*').eq('id', data.user.id).single(),
-          supabase.from('bookmarks').select('created_at').eq('profile_id', data.user.id)
-        ]).then(([{ data: profileData }, { data: bookmarkData }]) => {
+          supabase.from('event_registrations').select('created_at, events(*)').eq('profile_id', data.user.id).order('created_at', { ascending: false }),
+        ]).then(([{ data: profileData }, { data: regData }]) => {
           setProfile(profileData);
+          setRegisteredEvents(regData || []);
           
-          if (bookmarkData) {
-            // Calculate activity for the last 7 days
+          if (regData) {
+            // Calculate activity for the last 7 days based on registrations
             const counts = new Array(7).fill(0);
             const now = new Date();
             now.setHours(23, 59, 59, 999); // End of today
             
-            bookmarkData.forEach(b => {
-              const bDate = new Date(b.created_at);
-              const diffTime = now.getTime() - bDate.getTime();
+            regData.forEach((r: any) => {
+              const rDate = new Date(r.created_at);
+              const diffTime = now.getTime() - rDate.getTime();
               const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
               
               if (diffDays >= 0 && diffDays < 7) {
@@ -53,6 +53,7 @@ export default function UserDashboard() {
             });
             setActivityData(counts);
           }
+
           setIsLoading(false);
         });
       } else {
@@ -63,17 +64,16 @@ export default function UserDashboard() {
 
   const stats = [
     { label: "Acara Tersimpan", desc: "Lihat dan kelola acara yang sudah kamu simpan", icon: <Bookmark className="w-10 h-10 md:w-12 md:h-12 text-[#2563eb]" />, color: "text-[#2563eb]", href: "/bookmarks", btnLabel: "Lihat Acara" },
-    { label: "Sertifikat", desc: "Lihat sertifikat dari acara yang pernah kamu ikuti dan tuntas", icon: <Award className="w-10 h-10 md:w-12 md:h-12 text-[#16c475]" />, color: "text-[#16c475]", href: "/certificates", btnLabel: "Lihat Sertifikat" },
-    { label: "Portofolio Tersimpan", desc: "Kelola dan tampilkan karya terbaikmu", icon: <FileText className="w-10 h-10 md:w-12 md:h-12 text-[#15c475]" />, color: "text-[#15c475]", href: "/portfolios", btnLabel: "Lihat Portofolio" },
+    { label: "Sertifikat", desc: "Lihat sertifikat dari acara yang pernah kamu ikuti", icon: <Award className="w-10 h-10 md:w-12 md:h-12 text-[#16c475]" />, color: "text-[#16c475]", href: "/certificates", btnLabel: "Lihat Sertifikat" },
+    { label: "Portofolio", desc: "Kelola dan tampilkan karya terbaikmu", icon: <FileText className="w-10 h-10 md:w-12 md:h-12 text-[#15c475]" />, color: "text-[#15c475]", href: "/portfolios", btnLabel: "Lihat Portofolio" },
     { label: "CV Tersimpan", desc: "Buat, kelola, dan tampilkan CV terbaikmu", icon: <GraduationCap className="w-10 h-10 md:w-12 md:h-12 text-[#2563eb]" />, color: "text-[#2563eb]", href: "/cvs", btnLabel: "Lihat CV" },
   ];
 
   const profileSteps = [
-    { label: "Foto Profil", done: !!profile?.avatar_url },
+    { label: "Foto Profil", done: !!(profile?.avatar_url || user?.user_metadata?.avatar_url) },
     { label: "Data Diri", done: !!(profile?.full_name && profile?.phone_number) },
     { label: "CV", done: !!profile?.linkedin_url }, // LinkedIn as proxy for professional presence/CV
     { label: "Pendidikan", done: !!(profile?.institution && profile?.major) },
-    { label: "Pengalaman", done: !!profile?.bio && profile.bio.length > 20 },
     { label: "Portofolio", done: !!profile?.portfolio_url },
   ];
 
@@ -105,8 +105,6 @@ export default function UserDashboard() {
 
   return (
     <div className="min-h-screen w-full font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
-      
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
         <div className="absolute inset-0 w-full h-full">
@@ -132,10 +130,12 @@ export default function UserDashboard() {
             {/* Stats Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
               {stats.map((stat, i) => (
-                <div key={i} className="bg-white rounded-[15px] p-5 md:p-6 shadow-[0px_0px_7px_rgba(0,0,0,0.15)] flex flex-col justify-between h-[170px] md:h-[185px]">
-                  <div className="flex justify-between items-start gap-2">
+                <div key={i} className="bg-white rounded-[15px] p-5 md:p-6 shadow-[0px_0px_7px_rgba(0,0,0,0.15)] flex flex-col justify-between h-[170px] md:h-[185px] relative">
+                  <div className="flex justify-between items-start gap-2 relative z-10">
                     <div className="flex flex-col gap-1">
-                      <span className={`text-[18px] md:text-[20px] font-semibold ${stat.color}`}>{stat.label}</span>
+                      <span className={`text-[18px] md:text-[20px] font-semibold ${stat.color}`}>
+                        {stat.label}
+                      </span>
                       <p className="text-[12px] md:text-[13px] text-[#7d7d7d] leading-tight max-w-[150px] md:max-w-[180px]">
                         {stat.desc}
                       </p>
@@ -144,8 +144,8 @@ export default function UserDashboard() {
                       {stat.icon}
                     </div>
                   </div>
-                  <Link href={stat.href} className="w-full bg-[#2563eb] text-white text-[14px] md:text-[15px] font-bold h-[31px] rounded-[15px] flex items-center justify-center hover:bg-blue-700 transition-all">
-                    Lihat {stat.label}
+                  <Link href={stat.href} className="w-full bg-[#2563eb] text-white text-[14px] md:text-[15px] font-bold h-[31px] rounded-[15px] flex items-center justify-center hover:bg-blue-700 transition-all relative z-10">
+                    {stat.btnLabel}
                   </Link>
                 </div>
               ))}
@@ -190,6 +190,40 @@ export default function UserDashboard() {
                 })}
               </div>
             </div>
+
+            {/* Registered Events History */}
+            <div className="bg-white rounded-[24px] md:rounded-[32px] p-5 md:p-8 border border-gray-100 shadow-[0px_10px_30px_rgba(0,0,0,0.04)] mt-2 md:mt-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h3 className="text-[16px] md:text-[18px] font-bold text-[#181c1f]">Riwayat Pendaftaran Acara</h3>
+              </div>
+              
+              <div className="flex flex-col gap-4">
+                {registeredEvents.length > 0 ? (
+                  registeredEvents.map((reg, i) => (
+                    <Link key={i} href={`/events/${reg.events?.id}`} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 border border-gray-100 transition-all">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                        <img src={reg.events?.image_url || "/Logo.png"} alt={reg.events?.title} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex flex-col gap-1 flex-1">
+                        <h4 className="text-[14px] md:text-[15px] font-bold text-gray-900 line-clamp-1">{reg.events?.title}</h4>
+                        <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{reg.events?.start_date ? new Date(reg.events.start_date).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "Segera hadir"}</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </Link>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <p className="text-[14px] text-gray-500 font-medium mb-4">Belum ada acara yang diikuti.</p>
+                    <Link href="/dashboard" className="px-5 py-2 bg-[#2563eb] text-white text-[13px] font-bold rounded-lg hover:bg-blue-700 transition-all">
+                      Cari Acara
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Right Sidebar: Profile Summary */}
@@ -198,10 +232,10 @@ export default function UserDashboard() {
             <div className="bg-[#2622ff] rounded-t-[30px] h-[100px] md:h-[120px] relative">
               <div className="absolute -bottom-10 md:-bottom-12 left-1/2 -translate-x-1/2 w-[100px] h-[100px] md:w-[116px] md:h-[116px] bg-white rounded-full p-1 shadow-md">
                 <div className="w-full h-full bg-gray-100 rounded-full overflow-hidden flex items-center justify-center relative">
-                   {profile?.avatar_url ? (
-                     <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                   {profile?.avatar_url || user?.user_metadata?.avatar_url ? (
+                     <img src={profile?.avatar_url || user?.user_metadata?.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                    ) : (
-                     <span className="text-3xl md:text-4xl font-bold text-gray-300">{profile?.full_name?.charAt(0) || "U"}</span>
+                     <span className="text-3xl md:text-4xl font-bold text-gray-300">{(profile?.full_name || user?.user_metadata?.full_name || "U").charAt(0)}</span>
                    )}
                 </div>
               </div>

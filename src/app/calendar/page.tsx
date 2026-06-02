@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import EventCard from "@/components/molecules/EventCard";
 import { Filter, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
@@ -133,9 +132,7 @@ function CalendarContent() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   return (
-    <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
-
+    <div className="min-h-screen font-['Inter',sans-serif] bg-[#f8fafc] relative overflow-x-hidden">
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
         <div className="absolute inset-0 w-full h-full">

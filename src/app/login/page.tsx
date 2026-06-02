@@ -84,18 +84,18 @@ function LoginContent() {
             </h2>
 
             {sessionReset && (
-              <div className="w-full max-w-[301px] bg-amber-50 border border-amber-200 rounded-[10px] px-3 py-2 mb-3">
+              <div className="w-full sm:max-w-[320px] md:max-w-[360px] bg-amber-50 border border-amber-200 rounded-[10px] px-3 py-2 mb-3">
                 <p className="text-[11px] text-amber-700 text-center">Sesi kamu di-reset. Silakan login kembali.</p>
               </div>
             )}
 
             {(oauthError || error) && (
-              <div className="w-full max-w-[301px] bg-red-50 border border-red-200 rounded-[10px] px-3 py-2 mb-3">
+              <div className="w-full sm:max-w-[320px] md:max-w-[360px] bg-red-50 border border-red-200 rounded-[10px] px-3 py-2 mb-3">
                 <p className="text-[11px] text-red-600 text-center">{oauthError ? "Gagal login dengan Google." : error}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="w-full max-w-[301px] flex flex-col gap-[15px]" noValidate>
+            <form onSubmit={handleSubmit} className="w-full sm:max-w-[320px] md:max-w-[360px] flex flex-col gap-[15px]" noValidate>
               <input type="email" name="email" placeholder="Email" value={form.email} onChange={handleChange} required disabled={isLoading} className={inputClass} />
               <div className="relative">
                 <input type={showPassword ? "text" : "password"} name="password" placeholder="Kata Sandi" value={form.password} onChange={handleChange} required disabled={isLoading} className={`${inputClass} pr-10`} />
@@ -114,7 +114,7 @@ function LoginContent() {
                 </button>
                 <div className="flex items-center gap-[17px]"><div className="h-[1px] flex-1 bg-black/10" /><span className="text-[12px] text-black font-normal">Atau</span><div className="h-[1px] flex-1 bg-black/10" /></div>
                 <Link href="/register" className="block w-full">
-                  <button type="button" className="w-full h-[46px] bg-white text-gray-700 border border-gray-200 font-bold text-[14px] rounded-[12px] hover:bg-gray-50 transition-all">Belum punya akun? Daftar</button>
+                  <button type="button" className="w-full h-[46px] bg-white text-gray-700 border border-gray-200 font-bold text-[13px] md:text-[14px] rounded-[12px] hover:bg-gray-50 transition-all">Belum punya akun? Daftar</button>
                 </Link>
                 <div className="grid grid-cols-2 gap-3">
                   <button type="button" onClick={handleGoogleLogin} className="h-[46px] flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-[12px] hover:bg-gray-50 transition-all">

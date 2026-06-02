@@ -97,7 +97,7 @@ export default function EventCard({
         </div>
 
         {/* Content Section */}
-        <div className="px-4 py-4 flex flex-col gap-3 flex-1">
+        <div className="px-4 py-4 flex flex-col gap-3 flex-1 bg-gradient-to-br from-white via-[#f4fbff] to-[#f0fdf4]">
           {/* Title */}
           <h3 className="text-[15px] font-bold text-[#161616] leading-tight line-clamp-2 min-h-[40px]">
             {title}
@@ -125,14 +125,14 @@ export default function EventCard({
           </div>
 
           {/* Deadline */}
-          <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+          <div className="flex items-center justify-between pt-1 border-t border-blue-100/50 mt-auto">
             <span className="text-[11px] text-[#dc2626] font-bold">
               ⏰ Deadline: {deadline}
             </span>
           </div>
 
           {/* CTA Button */}
-          <div className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#2563eb] group-hover:bg-blue-700 rounded-[10px] text-white text-[13px] font-bold transition-colors mt-1">
+          <div className="flex items-center justify-center gap-1.5 w-full py-2 bg-gradient-to-r from-[#2563eb] via-[#1ab374] to-[#16c475] group-hover:opacity-90 rounded-[10px] text-white text-[13px] font-bold transition-all shadow-sm">
             <span>Lihat Detail</span>
             <ChevronRight className="w-4 h-4" />
           </div>

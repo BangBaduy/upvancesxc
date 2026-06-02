@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -18,7 +17,8 @@ import {
   User,
   Mail,
   Phone,
-  FileText
+  FileText,
+  QrCode
 } from "lucide-react";
 import type { Database } from "@/types";
 
@@ -111,14 +111,26 @@ export default function EventRegistrationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isProfileComplete) return;
+    if (!isProfileComplete || !event) return;
     setIsSaving(true);
     
-    // Simulate API call for registration
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/events/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: event.id })
+      });
+      if (res.ok) {
+        setIsSuccess(true);
+      } else {
+        const json = await res.json().catch(()=>({}));
+        setError(json.error || "Gagal mencatat pendaftaran.");
+      }
+    } catch {
+      setError("Gagal terhubung ke server.");
+    } finally {
       setIsSaving(false);
-      setIsSuccess(true);
-    }, 1500);
+    }
   };
 
   if (isLoading) {
@@ -203,8 +215,7 @@ export default function EventRegistrationPage() {
   }
 
   return (
-    <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
+    <div className="min-h-screen font-['Inter',sans-serif] bg-[#f8fafc] relative overflow-x-hidden">
       
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
@@ -234,84 +245,34 @@ export default function EventRegistrationPage() {
               <p className="text-gray-500 mb-8 text-[14px]">Mohon lengkapi data berikut untuk mendaftar acara.</p>
               
               <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
-                      <User className="w-4 h-4 text-[#2563eb]" /> Nama Lengkap
-                    </label>
-                    <input 
-                      readOnly
-                      type="text" 
-                      value={formData.fullName}
-                      placeholder="Masukkan nama lengkap"
-                      className="w-full h-[52px] px-4 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-[#2563eb]" /> Email Aktif
-                    </label>
-                    <input 
-                      readOnly
-                      type="email" 
-                      value={formData.email}
-                      placeholder="contoh@email.com"
-                      className="w-full h-[52px] px-4 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-[#2563eb]" /> No. WhatsApp
-                    </label>
-                    <input 
-                      readOnly
-                      type="tel" 
-                      value={formData.phoneNumber}
-                      placeholder="+62 ..."
-                      className="w-full h-[52px] px-4 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-[#2563eb]" /> Institusi / Kampus
-                    </label>
-                    <input 
-                      readOnly
-                      type="text" 
-                      value={formData.institution}
-                      placeholder="Nama universitas/sekolah"
-                      className="w-full h-[52px] px-4 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-2">
-                  <p className="text-[12px] text-[#2563eb] leading-relaxed">
-                    <strong>💡 Tips:</strong> Data di atas diambil otomatis dari profil kamu. Jika ada kesalahan, silakan 
-                    <Link href="/settings/profile" className="font-bold underline ml-1">Ubah Profil</Link> terlebih dahulu.
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
+                  <p className="text-[13px] text-[#2563eb] leading-relaxed text-center font-medium">
+                    Silakan isi formulir pendaftaran dari penyelenggara di bawah ini. Setelah selesai, pastikan Anda menekan tombol <strong>&quot;Saya sudah mengisi form&quot;</strong> agar pendaftaran tercatat di sistem kami.
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-[#2563eb]" /> Alasan Mengikuti Acara
-                  </label>
-                  <textarea 
-                    rows={4}
-                    value={formData.reason}
-                    onChange={e => setFormData({...formData, reason: e.target.value})}
-                    placeholder="Ceritakan sedikit motivasi kamu mengikuti acara ini..."
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] transition-all resize-none"
-                  />
+
+                {/* Iframe for external form */}
+                <div className="w-full h-[600px] border border-gray-200 rounded-2xl overflow-hidden bg-gray-50 relative">
+                  {!event.event_url ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                      <AlertCircle className="w-8 h-8 mb-2" />
+                      <p>Link formulir tidak tersedia</p>
+                    </div>
+                  ) : (
+                    <iframe 
+                      src={event.event_url} 
+                      className="w-full h-full"
+                      title="Form Pendaftaran"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    />
+                  )}
                 </div>
 
                 <button 
                   type="submit"
-                  disabled={isSubmitting}
-                  className="mt-4 w-full h-[56px] bg-[#2563eb] text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={isSubmitting || !event.event_url}
+                  className="mt-6 w-full h-[56px] bg-gradient-to-r from-[#2563eb] via-[#16c475] to-[#2563eb] bg-[length:200%_auto] text-white font-bold rounded-2xl hover:bg-right transition-all duration-500 shadow-lg shadow-blue-100 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
@@ -319,11 +280,11 @@ export default function EventRegistrationPage() {
                       Memproses...
                     </>
                   ) : (
-                    "Konfirmasi Pendaftaran"
+                    "Saya Sudah Mengisi Form"
                   )}
                 </button>
-                <p className="text-[11px] text-gray-400 text-center">
-                  Dengan mendaftar, kamu menyetujui Syarat & Ketentuan yang berlaku di platform Upvance.
+                <p className="text-[11px] text-gray-400 text-center mt-2">
+                  Dengan menekan tombol di atas, Anda mengonfirmasi bahwa Anda telah benar-benar mengisi formulir penyelenggara.
                 </p>
               </form>
             </div>

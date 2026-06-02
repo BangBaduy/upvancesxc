@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
+      console.error('Supabase signup error:', error)
       if (error.message.includes('already registered') || error.status === 422) {
         return NextResponse.json({
           data: null,
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
         }, { status: 200 })
       }
       return NextResponse.json(
-        { data: null, error: 'Gagal melakukan registrasi' },
+        { data: null, error: error.message || 'Gagal melakukan registrasi' },
         { status: 400 }
       )
     }

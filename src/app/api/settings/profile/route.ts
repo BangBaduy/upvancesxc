@@ -18,6 +18,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Nama minimal 2 karakter' }, { status: 400 })
     }
 
+    if (avatar_url !== undefined && typeof avatar_url === 'string' && avatar_url.trim().startsWith('data:image/')) {
+      return NextResponse.json({ error: 'URL foto profil tidak boleh menggunakan format base64 (data:image/...)' }, { status: 400 })
+    }
+
     const updates: Record<string, string | number | null> = { updated_at: new Date().toISOString() }
     if (full_name !== undefined)      updates.full_name      = full_name?.trim() || null
     if (avatar_url !== undefined)     updates.avatar_url     = avatar_url || null

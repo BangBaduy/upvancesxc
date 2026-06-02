@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import Header from "@/components/organism/Header";
+import Footer from "@/components/organism/Footer";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -132,9 +132,7 @@ export default function BookmarksPage() {
   const categories = ["Semua", ...Array.from(new Set(bookmarks.map(b => b.event.category)))];
 
   return (
-    <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
-
+    <div className="min-h-screen w-full relative font-['Inter',sans-serif] overflow-x-hidden">
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
         <div className="absolute inset-0 w-full h-full">

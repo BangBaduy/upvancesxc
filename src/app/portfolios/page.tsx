@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import { FileText, Plus, Search, Loader2, X, Link as LinkIcon, ExternalLink, Trash2 } from "lucide-react";
 
@@ -14,27 +13,60 @@ export default function PortfoliosPage() {
   const [newPortfolio, setNewPortfolio] = useState({ title: "", url: "" });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    async function loadPortfolios() {
+      try {
+        const res = await fetch('/api/user/portfolios');
+        const json = await res.json();
+        if (res.ok && json.data) {
+          setPortfolios(json.data);
+        }
+      } catch (err) {
+        console.error("Failed to load Portfolios");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadPortfolios();
   }, []);
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPortfolio.title || !newPortfolio.url) return;
-    setPortfolios([...portfolios, { ...newPortfolio, id: Date.now() }]);
-    setNewPortfolio({ title: "", url: "" });
-    setIsModalOpen(false);
+    try {
+      const res = await fetch('/api/user/portfolios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPortfolio)
+      });
+      const json = await res.json();
+      if (res.ok && json.data) {
+        setPortfolios([json.data, ...portfolios]);
+        setNewPortfolio({ title: "", url: "" });
+        setIsModalOpen(false);
+      } else {
+        alert(json.error || "Gagal menyimpan Portofolio");
+      }
+    } catch (err) {
+      alert("Gagal terhubung ke server");
+    }
   };
 
-  const removePortfolio = (id: number) => {
-    setPortfolios(portfolios.filter(p => p.id !== id));
+  const removePortfolio = async (id: number) => {
+    if (!confirm("Hapus Portofolio ini?")) return;
+    try {
+      const res = await fetch(`/api/user/portfolios?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setPortfolios(portfolios.filter(c => c.id !== id));
+      } else {
+        alert("Gagal menghapus Portofolio");
+      }
+    } catch {
+      alert("Gagal terhubung ke server");
+    }
   };
 
   return (
     <div className="min-h-screen w-full font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
       
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">

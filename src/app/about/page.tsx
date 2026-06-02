@@ -2,13 +2,11 @@
 
 import React from "react";
 import Image from "next/image";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 
 export default function AboutUsPage() {
   return (
     <div className="min-h-screen font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
       
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">

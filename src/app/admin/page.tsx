@@ -10,8 +10,9 @@ import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard, Users, Calendar, Bookmark, Clock, Plus,
   CheckCircle2, XCircle, LogOut, AlertCircle, Loader2, ShieldCheck,
-  Trash2, Eye, EyeOff, X, MapPin, Pencil
+  Trash2, Eye, EyeOff, X, MapPin, Pencil, BarChart3
 } from "lucide-react";
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from 'recharts';
 
 interface AdminStats {
   totalEvents: number;
@@ -52,16 +53,20 @@ const EMPTY_FORM = {
   title: "", category: "Lomba", location: "", is_online: false,
   is_free: true, price: 0, start_date: "", deadline: "",
   event_url: "", description: "", image_url: "",
+  organizer_name: "", organizer_logo_url: "",
 };
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
+  const [chartsData, setChartsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adminEmail, setAdminEmail] = useState("");
-  const [activeTab, setActiveTab] = useState<"overview" | "events">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "events" | "analytics">("overview");
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => setIsMounted(true), []);
 
   // Add/Edit event modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -86,7 +91,11 @@ export default function AdminDashboardPage() {
           fetch("/api/admin/events"),
         ]);
 
-        if (statsRes.ok) { const j = await statsRes.json(); setStats(j.stats); }
+        if (statsRes.ok) { 
+          const j = await statsRes.json(); 
+          setStats(j.stats); 
+          setChartsData(j.charts);
+        }
         if (eventsRes.ok) { const j = await eventsRes.json(); setEvents(j.data ?? []); }
       } catch (err) {
         console.error("Gagal memuat data admin:", err);
@@ -154,6 +163,8 @@ export default function AdminDashboardPage() {
         event_url: d.event_url || "",
         description: d.description || "",
         image_url: d.image_url || "",
+        organizer_name: d.organizers?.org_name || "",
+        organizer_logo_url: d.organizers?.org_logo_url || "",
       });
       setEditId(event.id);
       setIsEditing(true);
@@ -272,7 +283,7 @@ export default function AdminDashboardPage() {
       <main className="p-6 md:p-10 max-w-[1280px] mx-auto relative z-10">
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 mb-8 bg-gray-200/50 p-1.5 rounded-[15px] w-fit">
-          {(["overview", "events"] as const).map((tab) => (
+          {(["overview", "events", "analytics"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -280,7 +291,7 @@ export default function AdminDashboardPage() {
                 activeTab === tab ? "bg-white text-[#2563eb] shadow-md" : "text-[#6c6c6c] hover:text-[#161616]"
               }`}
             >
-              {tab === "overview" ? "Ringkasan" : "Kelola Event"}
+              {tab === "overview" ? "Ringkasan" : tab === "events" ? "Kelola Event" : "Analitik"}
             </button>
           ))}
         </div>
@@ -424,6 +435,136 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         )}
+
+        {/* ─── ANALYTICS TAB ─── */}
+        {activeTab === "analytics" && isMounted && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+            <div className="mb-6">
+              <h2 className="text-[#161616] text-[28px] font-bold tracking-tight">Analisis & Performa</h2>
+              <p className="text-[#6c6c6c] text-[16px] font-medium">Pantau pertumbuhan pengguna dan sebaran acara Upvance.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Trend Pendaftaran Acara (Area Chart) */}
+              <div className="bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm flex flex-col lg:col-span-2">
+                <h3 className="text-[#161616] text-[16px] font-bold mb-6 w-full text-left">Trend Pendaftaran Acara (7 Hari Terakhir)</h3>
+                <div className="w-full h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartsData?.trend || []}>
+                      <defs>
+                        <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#6c6c6c', fontSize: 12}} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#6c6c6c', fontSize: 12}} />
+                      <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                      <Area type="monotone" dataKey="views" name="Pendaftar" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorViews)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Pendaftar Kategori (Pie Chart) */}
+              <div className="bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm flex flex-col items-center">
+                <h3 className="text-[#161616] text-[16px] font-bold mb-6 w-full text-left">Pendaftar per Kategori Acara</h3>
+                <div className="w-full h-[250px]">
+                  {chartsData?.kategori && chartsData.kategori.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartsData.kategori}
+                          cx="50%" cy="50%" innerRadius={60} outerRadius={85}
+                          dataKey="value" stroke="none"
+                          label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {chartsData.kategori.map((entry: any, index: number) => {
+                            const colors = ['#2563eb', '#16c475', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f43f5e', '#84cc16', '#64748b'];
+                            return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                          })}
+                        </Pie>
+                        <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full text-gray-400">Belum ada pendaftaran</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Asal Kampus (Bar Chart) */}
+              <div className="bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm flex flex-col items-center">
+                <h3 className="text-[#161616] text-[16px] font-bold mb-6 w-full text-left">Top Asal Kampus Pengguna</h3>
+                <div className="w-full h-[250px]">
+                  {chartsData?.kampus && chartsData.kampus.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartsData.kampus} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
+                        <XAxis type="number" hide />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#6c6c6c', fontSize: 11}} width={120} />
+                        <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                        <Bar dataKey="value" name="Pengguna" fill="#16c475" radius={[0, 4, 4, 0]} barSize={20} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full text-gray-400">Belum ada data kampus</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Minat (Donut Chart) */}
+              <div className="bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm flex flex-col items-center">
+                <h3 className="text-[#161616] text-[16px] font-bold mb-6 w-full text-left">Proporsi Minat Pengguna (Donut Chart)</h3>
+                <div className="w-full h-[250px]">
+                  {chartsData?.minat && chartsData.minat.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartsData.minat}
+                          cx="50%" cy="50%" innerRadius={55} outerRadius={85}
+                          dataKey="value" stroke="none"
+                          label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {chartsData.minat.map((entry: any, index: number) => {
+                            const colors = ['#8b5cf6', '#ec4899', '#f43f5e', '#3b82f6', '#14b8a6', '#f59e0b', '#10b981'];
+                            return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                          })}
+                        </Pie>
+                        <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full text-gray-400">Belum ada data minat</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Semester (Pie/Bar Chart) */}
+              <div className="bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm flex flex-col items-center">
+                <h3 className="text-[#161616] text-[16px] font-bold mb-6 w-full text-left">Sebaran Semester</h3>
+                <div className="w-full h-[250px]">
+                  {chartsData?.semester && chartsData.semester.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartsData.semester} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#6c6c6c', fontSize: 11}} dy={5} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#6c6c6c', fontSize: 11}} />
+                        <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                        <Bar dataKey="value" name="Pengguna" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={40} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full text-gray-400">Belum ada data semester</div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
       </main>
 
       <Footer />
@@ -471,6 +612,15 @@ export default function AdminDashboardPage() {
                 </Field>
                 <Field label="Deadline Pendaftaran">
                   <input type="date" value={addForm.deadline} onChange={setF("deadline")} className={uInput} />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Nama Penyelenggara (Opsional)">
+                  <input type="text" value={addForm.organizer_name} onChange={setF("organizer_name")} placeholder="Contoh: BEM Universitas" className={uInput} />
+                </Field>
+                <Field label="Logo Penyelenggara (URL)">
+                  <input type="url" value={addForm.organizer_logo_url} onChange={setF("organizer_logo_url")} placeholder="https://..." className={uInput} />
                 </Field>
               </div>
 

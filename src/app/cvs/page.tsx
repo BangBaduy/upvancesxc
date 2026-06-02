@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import { GraduationCap, Plus, FileText, Loader2, Download, X, Link as LinkIcon, ExternalLink, Trash2 } from "lucide-react";
 
@@ -14,28 +13,60 @@ export default function CVsPage() {
   const [newCv, setNewCv] = useState({ title: "", url: "" });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    async function loadCvs() {
+      try {
+        const res = await fetch('/api/user/cvs');
+        const json = await res.json();
+        if (res.ok && json.data) {
+          setCvs(json.data);
+        }
+      } catch (err) {
+        console.error("Failed to load CVs");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadCvs();
   }, []);
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCv.title || !newCv.url) return;
-    setCvs([...cvs, { ...newCv, id: Date.now() }]);
-    setNewCv({ title: "", url: "" });
-    setIsModalOpen(false);
+    try {
+      const res = await fetch('/api/user/cvs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCv)
+      });
+      const json = await res.json();
+      if (res.ok && json.data) {
+        setCvs([json.data, ...cvs]);
+        setNewCv({ title: "", url: "" });
+        setIsModalOpen(false);
+      } else {
+        alert(json.error || "Gagal menyimpan CV");
+      }
+    } catch (err) {
+      alert("Gagal terhubung ke server");
+    }
   };
 
-  const removeCv = (id: number) => {
-    setCvs(cvs.filter(c => c.id !== id));
+  const removeCv = async (id: number) => {
+    if (!confirm("Hapus CV ini?")) return;
+    try {
+      const res = await fetch(`/api/user/cvs?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setCvs(cvs.filter(c => c.id !== id));
+      } else {
+        alert("Gagal menghapus CV");
+      }
+    } catch {
+      alert("Gagal terhubung ke server");
+    }
   };
 
   return (
     <div className="min-h-screen w-full font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
-      
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
         <div className="absolute inset-0 w-full h-full">

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import Link from "next/link";
 import Image from "next/image";
@@ -20,7 +19,7 @@ export default function LandingPage() {
       if (events.count || users.count) {
         setStats({
           totalEvents: events.count ? `${events.count}+` : "1000+",
-          totalUsers: users.count ? `${(users.count / 1000).toFixed(0)}k+` : "10k+"
+          totalUsers: "20+"
         });
       }
     });
@@ -28,7 +27,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen w-full font-['Inter',sans-serif] relative overflow-x-hidden">
-      <Header />
 
       {/* Background Layer */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#f8fafc]">
@@ -50,7 +48,7 @@ export default function LandingPage() {
           <h1 className="responsive-title text-black !mb-0">
             Explorasi Kegiatan
           </h1>
-          <h1 className="responsive-title bg-clip-text text-transparent bg-gradient-to-r from-[#245bd3] to-[#17bc84]">
+          <h1 className="responsive-title bg-clip-text text-transparent bg-gradient-to-r from-[#245bd3] to-[#17bc84] pb-2 md:pb-3">
             Tanpa Harus Mencari Satu-satu
           </h1>
         </div>
@@ -62,7 +60,7 @@ export default function LandingPage() {
 
         {/* Call to Actions */}
         <div className="flex flex-col sm:flex-row gap-4 md:gap-6 mb-20 md:mb-24 w-full sm:w-auto px-4 sm:px-0">
-          <Link href="/register" className="group flex items-center justify-center gap-2 bg-[#2563eb] text-white text-xl md:text-[24px] font-semibold h-[56px] px-8 rounded-full hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl active:scale-95">
+          <Link href="/dashboard" className="group flex items-center justify-center gap-2 bg-[#2563eb] text-white text-xl md:text-[24px] font-semibold h-[56px] px-8 rounded-full hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl active:scale-95">
             Gabung sekarang
             <span className="text-[20px] group-hover:translate-x-1 transition-transform">❯</span>
           </Link>

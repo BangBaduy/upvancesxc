@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, User, LogOut, ChevronDown, Bookmark, Menu, X, Calendar } from "lucide-react";
+import { Search, User, LogOut, ChevronDown, Bookmark, Menu, X, Calendar, ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -70,14 +70,21 @@ export default function Header() {
     <header className="fixed top-0 left-0 w-full h-[75px] bg-white border-b border-black/10 shadow-[0px_4px_2px_rgba(0,0,0,0.1)] z-50 flex items-center justify-center px-4 md:px-10">
       <div className="max-w-[1280px] w-full flex items-center justify-between gap-4">
         {/* Logo Section */}
-        <Link href="/" className="flex items-center shrink-0">
-          <div className="relative w-[32px] h-[32px] md:hidden">
-            <Image src="/Logo_Icon.png" alt="Upvance Logo" fill className="object-contain" sizes="32px" />
-          </div>
-          <div className="relative hidden md:block w-[100px] lg:w-[120px] h-[35px] lg:h-[40px]">
-            <Image src="/Logo.png" alt="Upvance Logo" fill className="object-contain" sizes="120px" />
-          </div>
-        </Link>
+        <div className="flex items-center gap-2">
+          {pathname !== '/' && pathname !== '/dashboard' && pathname !== '/main' && (
+            <button onClick={() => router.back()} className="lg:hidden p-1 -ml-2 text-[#212121]">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+          )}
+          <Link href="/" className="flex items-center shrink-0">
+            <div className="relative w-[32px] h-[32px] md:hidden">
+              <Image src="/Logo_Icon.png" alt="Upvance Logo" fill className="object-contain" sizes="32px" />
+            </div>
+            <div className="relative hidden md:block w-[100px] lg:w-[120px] h-[35px] lg:h-[40px]">
+              <Image src="/Logo.png" alt="Upvance Logo" fill className="object-contain" sizes="120px" />
+            </div>
+          </Link>
+        </div>
 
         {/* Desktop Group: Search + Nav (Synced with Figma Typography) */}
         <div className="hidden lg:flex flex-1 items-center justify-center gap-6 xl:gap-10">
