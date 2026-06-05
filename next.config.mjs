@@ -7,43 +7,16 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'figma.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.figma.com',
-        pathname: '/**',
-      },
-      {
-        // Foto profil Google OAuth
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-        pathname: '/**',
-      },
-      {
-        // Supabase Storage
-        protocol: 'https',
-        hostname: 'kmhfilbxwskbynjeuwld.supabase.co',
-        pathname: '/storage/v1/object/public/**',
-      },
-      {
-        // Foto profil Google OAuth (fallback domain)
-        protocol: 'https',
-        hostname: 'www.google.com',
-      },
-      {
-        // UIN Jakarta Assets
-        protocol: 'https',
-        hostname: 'asset.uinjkt.ac.id',
-        pathname: '/**',
-      },
-      {
-        // Allow images from any source for event posters (flexible but less secure - common for news/aggregator sites)
-        protocol: 'https',
         hostname: '**',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+        pathname: '/**',
       }
     ],
-    unoptimized: false,
+    unoptimized: true,
   },
   experimental: {
     serverActions: {

@@ -49,7 +49,7 @@ export default function LandingPage() {
             Explorasi Kegiatan
           </h1>
           <h1 className="responsive-title bg-clip-text text-transparent bg-gradient-to-r from-[#245bd3] to-[#17bc84] pb-2 md:pb-3">
-            Tanpa Harus Mencari Satu-satu
+            Tanpa Harus Mencari <span className="whitespace-nowrap">Satu-satu</span>
           </h1>
         </div>
 

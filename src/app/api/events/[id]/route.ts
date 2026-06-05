@@ -33,7 +33,11 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({ data, error: null })
+    return NextResponse.json({ data, error: null }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      }
+    })
 
   } catch (err) {
     console.error('[GET /api/events/[id]]', err)

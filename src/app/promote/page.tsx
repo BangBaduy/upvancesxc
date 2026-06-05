@@ -13,6 +13,7 @@ export default function PromotePage() {
     eventName: "",
     organizerName: "",
     eventDate: "",
+    bookletLink: "",
     notes: ""
   });
 
@@ -73,8 +74,8 @@ export default function PromotePage() {
   };
 
   const handleContinueToWA = () => {
-    const text = `Halo Upvance! Saya ingin konfirmasi pembayaran untuk paket: ${selectedTier.name}.%0A%0ADetail Acara:%0ANama: ${formData.eventName}%0APenyelenggara: ${formData.organizerName}%0ATanggal: ${formData.eventDate}%0ACatatan: ${formData.notes}`;
-    window.open(`https://wa.me/6283800499929xt}`, '_blank');
+    const text = `Halo Upvance! Saya ingin konfirmasi pembayaran untuk paket: ${selectedTier.name}.%0A%0ADetail Acara:%0ANama: ${formData.eventName}%0APenyelenggara: ${formData.organizerName}%0ATanggal: ${formData.eventDate}%0ALink Booklet: ${formData.bookletLink}%0ACatatan: ${formData.notes}`;
+    window.open(`https://wa.me/6281287804751?text=${text}`, '_blank');
     setStep("success");
     setSelectedTier(null);
   };
@@ -177,8 +178,9 @@ export default function PromotePage() {
                 Email Manager
               </a>
               <a 
-                href="https://wa.me/628123456789" 
+                href="https://wa.me/6281287804751" 
                 target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center justify-center gap-3 px-8 py-4 bg-[#16c475] text-white font-bold rounded-2xl hover:bg-green-600 transition-all shadow-lg"
               >
                 <MessageCircle className="w-5 h-5" />
@@ -246,6 +248,19 @@ export default function PromotePage() {
                       className="w-full h-[52px] px-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] transition-all text-gray-900"
                       value={formData.eventDate}
                       onChange={e => setFormData({...formData, eventDate: e.target.value})}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4 text-[#2563eb]" /> Link Booklet Acara
+                    </label>
+                    <input 
+                      required
+                      type="url" 
+                      placeholder="https://..."
+                      className="w-full h-[52px] px-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] transition-all text-gray-900"
+                      value={formData.bookletLink}
+                      onChange={e => setFormData({...formData, bookletLink: e.target.value})}
                     />
                   </div>
                   <button type="submit" className="w-full h-[56px] bg-[#2563eb] text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 mt-2">

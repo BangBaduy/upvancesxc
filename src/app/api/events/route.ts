@@ -19,13 +19,10 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('events')
       .select(
-        'id, title, slug, category, image_url, location, is_online, is_free, price, start_date, end_date, deadline, is_verified, is_featured, organizer_id',
+        'id, title, slug, category, image_url, location, is_online, is_free, price, start_date, end_date, deadline, is_verified, is_featured, organizer_id, organizers(org_name, org_logo_url)',
         { count: 'exact' }
       )
       .eq('is_published', true)
-      .order('is_featured', { ascending: false })
-      .order('created_at',  { ascending: false })
-      .range(offset, offset + limit - 1)
 
     if (search) query = query.ilike('title', `%${search}%`)
 
@@ -46,6 +43,9 @@ export async function GET(request: NextRequest) {
     if (featured !== null && featured !== '') query = query.eq('is_featured', featured === 'true')
 
     const { data, error, count } = await query
+      .order('is_featured', { ascending: false })
+      .order('created_at',  { ascending: false })
+      .range(offset, offset + limit - 1)
 
     if (error) throw error
 
@@ -58,6 +58,10 @@ export async function GET(request: NextRequest) {
         total_pages: Math.ceil((count ?? 0) / limit),
       },
       error: null,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      }
     })
 
   } catch (err) {

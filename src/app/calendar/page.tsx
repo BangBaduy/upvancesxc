@@ -8,7 +8,12 @@ import EventCard from "@/components/molecules/EventCard";
 import { Filter, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import type { Database } from "@/types";
 
-type EventRow = Database["public"]["Tables"]["events"]["Row"];
+type EventRow = Database["public"]["Tables"]["events"]["Row"] & {
+  organizers?: {
+    org_name: string;
+    org_logo_url: string | null;
+  } | null;
+};
 type EventCategory = EventRow["category"];
 
 const months = [
@@ -335,6 +340,8 @@ function CalendarContent() {
                   isVerified={event.is_verified}
                   category={event.category}
                   isOnline={event.is_online}
+                  organizerName={event.organizers?.org_name}
+                  organizerLogo={event.organizers?.org_logo_url}
                 />
               ))}
             </section>

@@ -16,17 +16,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Event ID required" }, { status: 400 });
     }
 
+    // ── Tugas 3: Validasi One-Time Registration ──
+    // Cek apakah kombinasi (event_id, user_id) sudah ada SEBELUM insert.
+    // Jika sudah terdaftar, tolak dengan pesan yang jelas — jangan diam-diam return success.
+    const { data: existing, error: checkError } = await (supabase as any)
+      .from("event_registrations")
+      .select("id")
+      .eq("event_id", event_id)
+      .eq("profile_id", user.id)
+      .maybeSingle();
+
+    if (checkError) {
+      return NextResponse.json({ error: checkError.message }, { status: 500 });
+    }
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "Anda sudah terdaftar di acara ini" },
+        { status: 400 }
+      );
+    }
+
+    // Belum terdaftar → lakukan insert
     const { error } = await supabase
-      .from('event_registrations')
+      .from("event_registrations")
       .insert({
         profile_id: user.id,
-        event_id: event_id
+        event_id: event_id,
       } as any);
 
     if (error) {
-      // Ignore unique constraint errors if they click multiple times
-      if (error.code === '23505') {
-        return NextResponse.json({ success: true, message: "Already registered" });
+      // Tangani race condition (insert duplikat bersamaan)
+      if (error.code === "23505") {
+        return NextResponse.json(
+          { error: "Anda sudah terdaftar di acara ini" },
+          { status: 400 }
+        );
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }

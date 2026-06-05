@@ -48,18 +48,32 @@ export async function POST(request: NextRequest) {
 
     let organizer_id = null;
     if (organizer_name?.trim()) {
-      const { data: orgData, error: orgError } = await supabase.from('organizers').insert({
-        profile_id: user.id,
-        org_name: organizer_name.trim(),
-        org_logo_url: organizer_logo_url?.trim() || null,
-        is_verified: true,
-        tier: 'free'
-      } as any).select('id').single()
+      const { data: existingOrg } = await supabase
+        .from('organizers')
+        .select('id')
+        .eq('profile_id', user.id)
+        .eq('org_name', organizer_name.trim())
+        .maybeSingle()
 
-      if (orgData) {
-        organizer_id = (orgData as any).id;
-      } else if (orgError) {
-        console.error('Failed to create organizer:', orgError)
+      if (existingOrg) {
+        organizer_id = (existingOrg as any).id;
+        if (organizer_logo_url) {
+          await (supabase.from('organizers') as any).update({ org_logo_url: organizer_logo_url.trim() }).eq('id', (existingOrg as any).id)
+        }
+      } else {
+        const { data: orgData, error: orgError } = await (supabase.from('organizers') as any).insert({
+          profile_id: user.id,
+          org_name: organizer_name.trim(),
+          org_logo_url: organizer_logo_url?.trim() || null,
+          is_verified: true,
+          tier: 'free'
+        }).select('id').single()
+
+        if (orgData) {
+          organizer_id = (orgData as any).id;
+        } else if (orgError) {
+          console.error('Failed to create organizer:', orgError)
+        }
       }
     }
 

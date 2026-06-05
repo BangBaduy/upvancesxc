@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { uploadImage } from "@/lib/imageUpload";
 import {
   User, Camera, Save, Loader2, CheckCircle2, AlertCircle, ArrowLeft,
-  Building2, BookOpen, Hash, Phone, Linkedin, Globe, FileText, ChevronRight
+  Building2, BookOpen, Hash, Phone, Linkedin, Globe, FileText, ChevronRight,
+  Upload, X
 } from "lucide-react";
 
 type ProfileForm = {
@@ -33,7 +35,10 @@ export default function ProfileSettingsPage() {
   const [points, setPoints] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -43,7 +48,7 @@ export default function ProfileSettingsPage() {
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("*")
+          .select("full_name, avatar_url, bio, phone_number, linkedin_url, portfolio_url, institution, major, semester, points")
           .eq("id", data.user.id)
           .maybeSingle();
 
@@ -70,36 +75,100 @@ export default function ProfileSettingsPage() {
   const set = (field: keyof ProfileForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(p => ({ ...p, [field]: e.target.value }));
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (form.avatar_url?.trim().startsWith("data:image/")) {
-      setStatus({ type: "error", message: "URL foto profil tidak boleh menggunakan format base64 (data:image/...)" });
+  const ensureUrlProtocol = (url: string) => {
+    if (!url || !url.trim()) return "";
+    const t = url.trim();
+    if (t.startsWith("data:image/")) return t;
+    if (/^https?:\/\//i.test(t)) return t;
+    return `https://${t}`;
+  };
+
+  /**
+   * Tugas 1: Upload gambar high-performance.
+   * - Kompres di browser (max 200KB, format WebP) via browser-image-compression
+   * - Upload ke Supabase Storage
+   * - Simpan public URL ke form (bukan Base64)
+   */
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi tipe file
+    if (!file.type.startsWith("image/")) {
+      setStatus({ type: "error", message: "File harus berupa gambar (JPG, PNG, WebP, dll.)" });
       return;
     }
-    
-    setIsSaving(true);
+
+    setIsUploading(true);
+    setUploadProgress("Mengompres gambar...");
     setStatus(null);
-    try {
-      const res = await fetch("/api/settings/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          semester: form.semester ? parseInt(form.semester) : null,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok || json.error) {
-        setStatus({ type: "error", message: json.error || "Gagal menyimpan" });
-      } else {
-        setStatus({ type: "success", message: "Profil berhasil diperbarui!" });
-      }
-    } catch {
-      setStatus({ type: "error", message: "Gagal terhubung ke server" });
-    } finally {
-      setIsSaving(false);
+
+    const result = await uploadImage(file, "avatars");
+
+    if (result.error) {
+      setStatus({ type: "error", message: result.error });
+      setIsUploading(false);
+      setUploadProgress("");
+      return;
     }
+
+    // Simpan URL hasil upload ke form
+    setForm(p => ({ ...p, avatar_url: result.url ?? "" }));
+    setUploadProgress("");
+    setIsUploading(false);
+    setStatus({ type: "success", message: "Foto berhasil diupload! Jangan lupa klik 'Simpan Perubahan'." });
+
+    // Reset input file agar bisa upload file yang sama lagi
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+const handleSave = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (form.avatar_url?.trim().startsWith("data:image/")) {
+    setStatus({ type: "error", message: "URL foto profil tidak boleh menggunakan format base64 (data:image/...)" });
+    return;
+  }
+
+  setIsSaving(true);
+  setStatus(null);
+  try {
+    const payload = {
+      ...form,
+      avatar_url: ensureUrlProtocol(form.avatar_url),
+      linkedin_url: ensureUrlProtocol(form.linkedin_url),
+      portfolio_url: ensureUrlProtocol(form.portfolio_url),
+      semester: form.semester ? parseInt(form.semester) : null,
+    };
+
+    const res = await fetch("/api/settings/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok || json.error) {
+      setStatus({ type: "error", message: json.error || "Gagal menyimpan" });
+    } else {
+      setStatus({ type: "success", message: "Profil berhasil diperbarui! Mengalihkan..." });
+
+      // ── Tugas 1: Global State Sync ──
+      // Refresh sesi Supabase agar user_metadata (avatar_url, full_name) terupdate,
+      // lalu panggil router.refresh() agar Next.js cache diinvalidasi dan
+      // Header/Navbar langsung menampilkan avatar terbaru tanpa hard reload.
+      const supabase = createClient();
+      await supabase.auth.refreshSession();
+      router.refresh();
+
+      setTimeout(() => {
+        router.push("/main");
+      }, 1200);
+    }
+  } catch {
+    setStatus({ type: "error", message: "Gagal terhubung ke server" });
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   if (isLoading) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><Loader2 className="w-8 h-8 text-[#2563eb] animate-spin" /></div>;
@@ -133,15 +202,35 @@ export default function ProfileSettingsPage() {
           <div className="bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] px-8 py-8 flex flex-col items-center gap-4">
             <div className="relative">
               <div className="w-24 h-24 rounded-full overflow-hidden bg-white/20 border-4 border-white shadow-lg flex items-center justify-center relative">
-                {form.avatar_url ? (
+                {isUploading ? (
+                  <div className="flex flex-col items-center justify-center text-white text-center p-2">
+                    <Loader2 className="w-6 h-6 animate-spin mb-1" />
+                    <span className="text-[9px] font-medium leading-tight">{uploadProgress}</span>
+                  </div>
+                ) : form.avatar_url ? (
                   <img src={form.avatar_url} alt={displayName} className="w-full h-full object-cover" />
                 ) : (
                   <User className="w-10 h-10 text-white" />
                 )}
               </div>
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md">
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFileChange}
+                disabled={isUploading}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-50 transition-colors disabled:opacity-60"
+                title="Upload foto profil"
+              >
                 <Camera className="w-4 h-4 text-[#2563eb]" />
-              </div>
+              </button>
             </div>
             <div className="text-center">
               <p className="text-white font-bold text-[18px]">{displayName}</p>
@@ -173,8 +262,35 @@ export default function ProfileSettingsPage() {
                 <Field label="Email" icon={<User className="w-4 h-4" />}>
                   <input type="email" value={email} disabled className={`${inputClass} bg-gray-50 text-gray-400 cursor-not-allowed`} />
                 </Field>
-                <Field label="URL Foto Profil" icon={<Camera className="w-4 h-4" />}>
-                  <input type="url" value={form.avatar_url} onChange={set("avatar_url")} placeholder="https://..." className={inputClass} />
+                {/* Tugas 1: Upload Gambar - tombol upload + input URL manual sebagai fallback */}
+                <Field label="Foto Profil" icon={<Camera className="w-4 h-4" />}>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="w-full h-[44px] border-2 border-dashed border-[#2563eb]/40 rounded-[10px] flex items-center justify-center gap-2 text-[14px] text-[#2563eb] font-semibold hover:bg-blue-50 hover:border-[#2563eb] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isUploading ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" />{uploadProgress || "Mengupload..."}</>
+                      ) : (
+                        <><Upload className="w-4 h-4" />Upload Foto</>
+                      )}
+                    </button>
+                    {form.avatar_url && !form.avatar_url.startsWith("data:") && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-[8px]">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                        <span className="text-[12px] text-green-700 truncate flex-1" title={form.avatar_url}>
+                          {form.avatar_url.length > 50 ? form.avatar_url.slice(0, 47) + "..." : form.avatar_url}
+                        </span>
+                        <button type="button" onClick={() => setForm(p => ({ ...p, avatar_url: "" }))} className="text-gray-400 hover:text-gray-600">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-gray-400">Atau tempel URL gambar langsung:</p>
+                    <input type="url" value={form.avatar_url} onChange={set("avatar_url")} placeholder="https://..." className={inputClass} />
+                  </div>
                 </Field>
                 <Field label="Bio" icon={<FileText className="w-4 h-4" />}>
                   <textarea value={form.bio} onChange={set("bio")} placeholder="Ceritakan tentang dirimu..." rows={3} maxLength={200}

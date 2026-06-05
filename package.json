@@ -1,6 +1,6 @@
 {
   "name": "upvance-frontend",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
+    "browser-image-compression": "^2.0.2",
     "clsx": "^2.1.1",
     "cross-env": "^10.1.0",
     "jslint": "^0.12.1",

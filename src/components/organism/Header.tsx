@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, User, LogOut, ChevronDown, Bookmark, Menu, X, Calendar, ChevronLeft } from "lucide-react";
+import { Search, User, LogOut, ChevronDown, Bookmark, Menu, X, Calendar, ChevronLeft, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -14,6 +14,7 @@ export default function Header() {
   const supabase = createClient();
 
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -30,13 +31,35 @@ export default function Header() {
   };
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
+    const fetchUserAndRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        setRole(profile?.role || null);
+      }
       setIsLoadingUser(false);
-    });
+    };
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    fetchUserAndRole();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const newUser = session?.user ?? null;
+      setUser(newUser);
+      if (newUser) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", newUser.id)
+          .single();
+        setRole(profile?.role || null);
+      } else {
+        setRole(null);
+      }
     });
 
     return () => listener.subscription.unsubscribe();
@@ -141,11 +164,6 @@ export default function Header() {
             <div className="hidden sm:block w-[80px] lg:w-[120px] h-[38px] bg-gray-100 rounded-[50px] animate-pulse" />
           ) : user ? (
             <div className="flex items-center gap-2 md:gap-4">
-              <Link href="/main" className="hidden xl:block">
-                <button className={`px-6 py-1.5 rounded-[50px] text-[18px] font-semibold transition-all ${pathname === "/main" ? "bg-[#2563eb] text-white" : "bg-white border border-[#2563eb] text-[#2563eb] hover:bg-blue-50"}`}>
-                  Dashboard
-                </button>
-              </Link>
               <div className="relative">
                 <button onClick={() => setShowDropdown((v) => !v)} className="flex items-center gap-2 bg-[#f0f5ff] border border-[#2563eb]/20 text-[#2563eb] p-1.5 md:px-4 md:py-1.5 rounded-full md:rounded-[50px] hover:bg-[#e0ecff] transition-colors">
                   {avatarUrl ? (
@@ -166,7 +184,14 @@ export default function Header() {
                         <p className="text-[12px] text-gray-500">Masuk sebagai</p>
                         <p className="text-[13px] font-semibold text-gray-800 truncate">{user.email}</p>
                       </div>
-                      <Link href="/main" onClick={() => setShowDropdown(false)} className="flex lg:hidden items-center gap-2 px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 transition-colors"><Calendar className="w-4 h-4" /> Dashboard</Link>
+                      {role === "admin" && (
+                        <Link href="/admin" onClick={() => setShowDropdown(false)} className="flex items-center gap-2 px-4 py-2.5 text-[13px] text-[#2563eb] font-semibold hover:bg-blue-50 transition-colors border-b border-gray-100">
+                          <ShieldCheck className="w-4 h-4" /> Panel Admin
+                        </Link>
+                      )}
+                      <Link href="/main" onClick={() => setShowDropdown(false)} className="flex items-center gap-2 px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 transition-colors">
+                        <Calendar className="w-4 h-4" /> Dashboard
+                      </Link>
                       <Link href="/settings/profile" onClick={() => setShowDropdown(false)} className="flex items-center gap-2 px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 transition-colors"><User className="w-4 h-4" /> Edit Profil</Link>
                       <Link href="/bookmarks" onClick={() => setShowDropdown(false)} className="flex items-center gap-2 px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 transition-colors"><Bookmark className="w-4 h-4" /> Bookmark Saya</Link>
                       <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-red-500 hover:bg-red-50 transition-colors border-t border-gray-100"><LogOut className="w-4 h-4" /> Keluar</button>

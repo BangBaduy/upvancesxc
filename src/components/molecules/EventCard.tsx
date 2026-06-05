@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, CheckCircle2, Globe, Calendar, ChevronRight } from "lucide-react";
+import { MapPin, CheckCircle2, Globe, Calendar, ChevronRight, CircleDollarSign } from "lucide-react";
 
 interface EventCardProps {
   id: string;
@@ -16,18 +16,20 @@ interface EventCardProps {
   isVerified?: boolean;
   category?: string;
   isOnline?: boolean;
+  organizerName?: string;
+  organizerLogo?: string | null;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Lomba: "bg-blue-50 text-[#16558f] border-blue-200",
-  Seminar: "bg-purple-50 text-purple-700 border-purple-200",
-  Workshop: "bg-orange-50 text-orange-700 border-orange-200",
-  Beasiswa: "bg-green-50 text-green-700 border-green-200",
-  Magang: "bg-teal-50 text-teal-700 border-teal-200",
-  Webinar: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  Volunteer: "bg-lime-50 text-lime-700 border-lime-200",
-  Greenvity: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Lainnya: "bg-gray-50 text-gray-700 border-gray-200",
+  Lomba: "bg-[#2563eb] text-white",
+  Seminar: "bg-purple-600 text-white",
+  Workshop: "bg-orange-600 text-white",
+  Beasiswa: "bg-green-600 text-white",
+  Magang: "bg-teal-600 text-white",
+  Webinar: "bg-indigo-600 text-white",
+  Volunteer: "bg-lime-600 text-white",
+  Greenvity: "bg-emerald-700 text-white",
+  Lainnya: "bg-gray-600 text-white",
 };
 
 export default function EventCard({
@@ -41,100 +43,105 @@ export default function EventCard({
   isVerified = false,
   category = "Lainnya",
   isOnline = false,
+  organizerName,
+  organizerLogo,
 }: EventCardProps) {
-  const catColor = CATEGORY_COLORS[category] ?? "bg-gray-50 text-gray-700 border-gray-200";
+  const catColor = CATEGORY_COLORS[category] ?? "bg-gray-600 text-white";
 
   return (
     <Link href={`/events/${id}`} className="block group">
-      <div className="relative w-[306px] rounded-[20px] overflow-hidden shadow-[0px_4px_20px_rgba(0,0,0,0.12)] group-hover:shadow-[0px_8px_32px_rgba(37,99,235,0.25)] group-hover:-translate-y-1 transition-all duration-300 bg-white flex flex-col">
+      <div className="relative w-[320px] rounded-[20px] overflow-hidden shadow-[0px_0px_15px_rgba(0,0,0,0.25)] group-hover:shadow-[0px_8px_32px_rgba(37,99,235,0.25)] group-hover:-translate-y-1 transition-all duration-300 bg-white flex flex-col p-[14px]">
         
-        {/* Image Section */}
-        <div className="relative w-full h-[200px] overflow-hidden bg-[#f1f5f9]">
-          {/* Blurred Background to fill empty spaces for different aspect ratios */}
-          <Image
-            src={image}
-            alt=""
-            fill
-            className="object-cover blur-lg opacity-40 scale-110"
-            aria-hidden="true"
-          />
-          
-          {/* Main Poster Image - Contained to show full content */}
+        {/* Poster Image */}
+        <div className="relative w-full aspect-[322/402] rounded-[20px] overflow-hidden bg-gray-100 mb-4">
           <Image
             src={image}
             alt={title}
             fill
-            className="object-contain relative z-10 transition-transform duration-500"
-            sizes="306px"
+            className="object-cover"
+            sizes="320px"
           />
           
-          {/* Gradient overlay bottom - behind text but above images */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent z-20" />
-
-          {/* Category badge — top left */}
-          <span className={`absolute top-3 left-3 ${catColor} border text-[11px] font-bold px-3 py-1 rounded-full shadow-md z-30`}>
-            {category}
-          </span>
-
-          {/* Verified badge — top right */}
-          {isVerified && (
-            <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm text-[#2563eb] text-[11px] font-bold px-2 py-1 rounded-full shadow z-30">
-              <CheckCircle2 className="w-3 h-3" />
-              Verified
-            </div>
-          )}
-
-          {/* Price — bottom left overlay */}
-          <div className="absolute bottom-3 left-3 z-30">
-            <span className={`text-[12px] font-bold px-3 py-1 rounded-full ${
-              price === "Gratis"
-                ? "bg-green-500 text-white"
-                : "bg-yellow-400 text-black"
-            }`}>
-              {price}
+          {/* Category Overlay - Top Left */}
+          <div className="absolute top-3 left-3 flex flex-wrap gap-1">
+            <span className={`${catColor} text-[9px] font-light px-2.5 py-1 rounded-full shadow-sm`}>
+              {category}
             </span>
           </div>
         </div>
 
-        {/* Content Section */}
-        <div className="px-4 py-4 flex flex-col gap-3 flex-1 bg-gradient-to-br from-white via-[#f4fbff] to-[#f0fdf4]">
-          {/* Title */}
-          <h3 className="text-[15px] font-bold text-[#161616] leading-tight line-clamp-2 min-h-[40px]">
+        {/* Event Title */}
+        <div className="px-1 mb-3">
+          <h3 className="text-[14px] font-bold text-[#161616] leading-[1.25] line-clamp-2 min-h-[35px] font-['Montserrat',sans-serif]">
             {title}
           </h3>
+        </div>
 
-          {/* Info rows */}
-          <div className="flex flex-col gap-2">
-            {/* Location */}
-            <div className="flex items-center gap-2 text-[#555]">
-              {isOnline ? (
-                <Globe className="w-4 h-4 text-[#2563eb] shrink-0" />
+        {/* CTA Button */}
+        <div className="px-1 mb-4">
+          <div className="w-full h-[36px] bg-[#2563eb] rounded-full flex items-center justify-center gap-2 text-white text-[18px] font-bold font-['Inter',sans-serif] shadow-sm">
+            <span>More Detail</span>
+            <ChevronRight className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Status & Info Rows */}
+        <div className="px-1 flex flex-col gap-2 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[#374151]">
+              {isOnline && location === "Online" ? (
+                <Globe className="w-3.5 h-3.5 text-[#2563eb]" />
+              ) : isOnline ? (
+                <div className="flex items-center -space-x-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#2563eb] bg-white rounded-full p-0.5" />
+                  <Globe className="w-3.5 h-3.5 text-[#2563eb]" />
+                </div>
               ) : (
-                <MapPin className="w-4 h-4 text-[#2563eb] shrink-0" />
+                <MapPin className="w-3.5 h-3.5 text-[#2563eb]" />
               )}
-              <span className="text-[12px] font-medium truncate">
-                {isOnline ? "Online" : location}
+              <span className="text-[10.5px] font-bold font-['Montserrat',sans-serif]">
+                {isOnline && location === "Online" ? "Online" : isOnline ? `Hybrid (${location})` : location}
               </span>
             </div>
 
-            {/* Dates */}
-            <div className="flex items-center gap-2 text-[#555]">
-              <Calendar className="w-4 h-4 text-[#2563eb] shrink-0" />
-              <span className="text-[12px] font-medium">Mulai: {startDate}</span>
+            {isVerified && (
+              <div className="flex items-center gap-1 text-[#2563eb]">
+                <CheckCircle2 className="w-4 h-4 fill-[#2563eb] text-white" />
+                <span className="text-[13px] font-bold font-['Inter',sans-serif]">Verified</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10.5px] font-bold text-[#161616] font-['Inter',sans-serif]">Mulai: {startDate}</span>
+              <span className="text-[10.5px] font-bold text-[#dc2626] font-['Inter',sans-serif]">Deadline: {deadline}</span>
+            </div>
+            
+            <div className="flex items-center gap-1.5 text-[#0E0E0F]">
+              <CircleDollarSign className="w-4 h-4 text-[#2563eb]" />
+              <span className="text-[10px] font-bold font-['Inter',sans-serif]">{price}</span>
             </div>
           </div>
+        </div>
 
-          {/* Deadline */}
-          <div className="flex items-center justify-between pt-1 border-t border-blue-100/50 mt-auto">
-            <span className="text-[11px] text-[#dc2626] font-bold">
-              ⏰ Deadline: {deadline}
-            </span>
+        {/* Divider */}
+        <div className="h-px bg-gray-100 w-full mb-3" />
+
+        {/* Organizer Section */}
+        <div className="px-1 flex items-center gap-3">
+          <div className="w-[65px] h-[30px] relative shrink-0">
+            {organizerLogo ? (
+              <Image src={organizerLogo} alt={organizerName || ""} fill className="object-contain" />
+            ) : (
+              <div className="w-full h-full bg-gray-50 rounded-md flex items-center justify-center border border-gray-100">
+                <Image src="/Logo_Icon.png" alt="" fill className="object-contain opacity-20 p-1" />
+              </div>
+            )}
           </div>
-
-          {/* CTA Button */}
-          <div className="flex items-center justify-center gap-1.5 w-full py-2 bg-gradient-to-r from-[#2563eb] via-[#1ab374] to-[#16c475] group-hover:opacity-90 rounded-[10px] text-white text-[13px] font-bold transition-all shadow-sm">
-            <span>Lihat Detail</span>
-            <ChevronRight className="w-4 h-4" />
+          <div className="flex flex-col">
+            <span className="text-[#bababa] text-[13px] font-bold leading-tight">Diselenggarakan Oleh</span>
+            <span className="text-black text-[12px] font-bold line-clamp-1">{organizerName || "Penyelenggara"}</span>
           </div>
         </div>
       </div>

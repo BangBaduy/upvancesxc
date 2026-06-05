@@ -12,7 +12,9 @@ import {
   Award, 
   ChevronRight,
   CheckCircle2,
-  Calendar
+  Calendar,
+  Globe,
+  ExternalLink
 } from "lucide-react";
 
 export default function UserDashboard() {
@@ -29,25 +31,33 @@ export default function UserDashboard() {
         setUser(data.user);
         
         Promise.all([
-          supabase.from('profiles').select('*').eq('id', data.user.id).single(),
-          supabase.from('event_registrations').select('created_at, events(*)').eq('profile_id', data.user.id).order('created_at', { ascending: false }),
+          supabase.from('profiles').select('id, full_name, avatar_url, bio, institution, major, phone_number, linkedin_url, portfolio_url').eq('id', data.user.id).maybeSingle(),
+          supabase.from('event_registrations').select('created_at, events(id, title, image_url, start_date, is_published)').eq('profile_id', data.user.id).order('created_at', { ascending: false }),
         ]).then(([{ data: profileData }, { data: regData }]) => {
           setProfile(profileData);
-          setRegisteredEvents(regData || []);
           
-          if (regData) {
+          // Filter out unpublished events
+          const validRegs = (regData || []).filter((r: any) => r.events && r.events.is_published === true);
+          setRegisteredEvents(validRegs);
+          
+          if (validRegs) {
             // Calculate activity for the last 7 days based on registrations
             const counts = new Array(7).fill(0);
             const now = new Date();
-            now.setHours(23, 59, 59, 999); // End of today
+            // Create a date object for the beginning of today (local time)
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             
-            regData.forEach((r: any) => {
+            validRegs.forEach((r: any) => {
               const rDate = new Date(r.created_at);
-              const diffTime = now.getTime() - rDate.getTime();
-              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              // Create a date object for the beginning of the registration day
+              const startOfRDate = new Date(rDate.getFullYear(), rDate.getMonth(), rDate.getDate());
+              
+              // Calculate difference in days
+              const diffTime = startOfToday.getTime() - startOfRDate.getTime();
+              const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
               
               if (diffDays >= 0 && diffDays < 7) {
-                // 0 is today (last index in graph), 6 is 7 days ago (first index)
+                // index 6 is today, index 0 is 6 days ago
                 counts[6 - diffDays]++;
               }
             });
@@ -246,9 +256,22 @@ export default function UserDashboard() {
               <h2 className="text-[20px] md:text-[24px] font-semibold text-[#212121] mb-1">{profile?.full_name || "User"}</h2>
               <p className="text-[14px] md:text-[16px] font-semibold text-[#6c6c6c] mb-0.5">{profile?.major || "Mahasiswa"}</p>
               <p className="text-[14px] md:text-[16px] font-semibold text-[#6c6c6c] mb-4">{profile?.institution || "Institusi"}</p>
-              <p className="text-[12px] font-medium text-[#6c6c6c] leading-snug mb-8">
+              <p className="text-[12px] font-medium text-[#6c6c6c] leading-snug mb-6">
                 {profile?.bio || "Lengkapi bio untuk menarik minat penyelenggara acara"}
               </p>
+
+              {profile?.portfolio_url && (
+                <a 
+                  href={profile.portfolio_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 mb-6 px-4 py-2 bg-green-50/50 border border-green-100 rounded-xl text-[13px] font-bold text-[#16c475] hover:bg-green-50 transition-all group"
+                >
+                  <Globe className="w-4 h-4" />
+                  <span className="truncate max-w-[150px]">{profile.portfolio_url.replace(/^https?:\/\//, '')}</span>
+                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
+              )}
 
               <div className="w-full h-px bg-gray-200 mb-6" />
 
@@ -292,7 +315,12 @@ export default function UserDashboard() {
                   )}
 
                   {profileSteps.find(s => s.label === "Portofolio")?.done && (
-                    <Link href="/portfolios" className="w-full bg-white border border-[#15c475] text-[#15c475] text-[15px] font-semibold h-[38px] rounded-[50px] flex items-center justify-center hover:bg-green-50 transition-all">
+                    <Link 
+                      href={profile?.portfolio_url || "/portfolios"} 
+                      target={profile?.portfolio_url ? "_blank" : "_self"}
+                      rel={profile?.portfolio_url ? "noopener noreferrer" : undefined}
+                      className="w-full bg-white border border-[#15c475] text-[#15c475] text-[15px] font-semibold h-[38px] rounded-[50px] flex items-center justify-center hover:bg-green-50 transition-all"
+                    >
                       Lihat Portofolio
                     </Link>
                   )}

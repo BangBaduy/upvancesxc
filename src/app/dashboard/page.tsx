@@ -8,7 +8,12 @@ import EventCard from "@/components/molecules/EventCard";
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, X } from "lucide-react";
 import type { Database } from "@/types";
 
-type EventRow = Database["public"]["Tables"]["events"]["Row"];
+type EventRow = Database["public"]["Tables"]["events"]["Row"] & {
+  organizers?: {
+    org_name: string;
+    org_logo_url: string | null;
+  } | null;
+};
 type EventCategory = EventRow["category"];
 
 interface EventsApiResponse {
@@ -84,8 +89,8 @@ function DashboardContent() {
         const json = await res.json();
         if (!res.ok || json.error) { setError(json.error || "Gagal memuat bookmark"); setEvents([]); setMeta(null); return; }
         
-        // Map bookmarks to event rows (bookmarks response is { data: [ { events: { ... } } ] })
-        const bookmarkedEvents = json.data?.map((b: any) => b.events) || [];
+        // Map bookmarks to event rows (bookmarks response is { data: [ { event: { ... } } ] })
+        const bookmarkedEvents = json.data?.map((b: any) => b.event) || [];
         
         // Client-side filtering for search/free/categories if needed on saved items
         let filtered = bookmarkedEvents;
@@ -235,93 +240,6 @@ function DashboardContent() {
             )}
           </div>
 
-          {/* ─── NEW CLEAN FILTER UI (COMPACT) ─── */}
-          <div className="mb-8 space-y-4">
-            {/* Main Tabs Segment */}
-            <div className="flex justify-center">
-              <div className="inline-flex p-0.5 bg-gray-100/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
-                {[
-                  { label: "Untukmu",        value: "rekomendasi" as const },
-                  { label: "Semua",             value: "all"         as const },
-                  { label: "Umum",              value: "umum"        as const },
-                  { label: "Green & Volunteer", value: "green"       as const },
-                  { label: "Bookmarks",      value: "saved"       as const },
-                ].map((seg) => (
-                  <button
-                    key={seg.value}
-                    onClick={() => { 
-                      setActiveSegment(seg.value); 
-                      if (seg.value === "green") {
-                        setSelectedCategories(new Set(GREEN_CATEGORIES));
-                      } else if (seg.value === "umum") {
-                        setSelectedCategories(new Set(UMUM_CATEGORIES));
-                      } else {
-                        setSelectedCategories(new Set());
-                      }
-                    }}
-                    className={`px-3 md:px-6 py-1.5 rounded-lg text-[13px] font-bold transition-all whitespace-nowrap ${
-                      activeSegment === seg.value
-                        ? "bg-white text-[#2563eb] shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                  >
-                    {seg.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Secondary Filters Bar */}
-            <div className="flex justify-center px-4">
-              <div className="max-w-[1000px] w-fit flex flex-col md:flex-row items-center gap-3 bg-white/50 border border-gray-200 p-2 rounded-xl shadow-sm backdrop-blur-sm overflow-hidden">
-                {/* Categories Scroller */}
-                <div className="w-full min-w-0 overflow-hidden">
-                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 px-1">
-                    {/* Gratis Toggle - Compact */}
-                    <button
-                      onClick={() => setIsFreeOnly(p => !p)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold border shrink-0 transition-all ${
-                        isFreeOnly
-                          ? "bg-green-500 text-white border-green-500 shadow-sm"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-green-400"
-                      }`}
-                    >
-                      Gratis
-                    </button>
-
-                    <div className="w-[1px] h-5 bg-gray-300 mx-0.5 shrink-0" />
-
-                    {ALL_CATEGORIES.map((cat) => (
-                      <button
-                        key={cat.value}
-                        onClick={() => toggleCategory(cat.value)}
-                        className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border shrink-0 transition-all ${
-                          selectedCategories.has(cat.value)
-                            ? "bg-[#2563eb] text-white border-[#2563eb] shadow-sm"
-                            : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                        }`}
-                      >
-                        {cat.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Quick Reset */}
-                {hasFilter && (
-                  <button 
-                    onClick={clearFilters} 
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-red-500 hover:bg-red-50 rounded-full transition-colors shrink-0"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Reset Filter</span>
-                    <span className="md:hidden">Reset</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Loading State */}
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -369,6 +287,8 @@ function DashboardContent() {
                     isVerified={event.is_verified}
                     category={event.category}
                     isOnline={event.is_online}
+                    organizerName={event.organizers?.org_name}
+                    organizerLogo={event.organizers?.org_logo_url}
                   />
                 ))}
               </div>

@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
         created_at,
         event:events (
           id, title, slug, category, location, is_online, is_free, price,
-          start_date, deadline, image_url, event_url, is_published
+          start_date, deadline, image_url, event_url, is_published,
+          organizers(org_name, org_logo_url)
         )
       `)
       .eq('profile_id', user.id)
@@ -41,10 +42,17 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    // Filter hanya event yang masih published
-    const validBookmarks = (data ?? []).filter(b => (b as any).event && ((b as any).event as { is_published?: boolean }).is_published !== false)
+    // Filter hanya event yang masih published (is_published === true)
+    const validBookmarks = (data ?? []).filter(b => {
+      const ev = (b as any).event
+      return ev && ev.is_published === true
+    })
 
-    return NextResponse.json({ data: validBookmarks, error: null })
+    return NextResponse.json({ data: validBookmarks, error: null }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      }
+    })
   } catch (err) {
     console.error('[GET /api/bookmarks]', err)
     return NextResponse.json({ data: [], error: 'Server error' }, { status: 500 })

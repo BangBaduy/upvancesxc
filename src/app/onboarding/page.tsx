@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   ChevronRight, ChevronLeft, Check, Loader2,
-  GraduationCap, Target, User2, Building2, BookOpen, Hash, X
+  GraduationCap, Target, User2, Building2, BookOpen, Hash, X,
+  Calendar, Bell, ShieldCheck, Sparkles
 } from "lucide-react";
 
 // ─── DATA ────────────────────────────────────────────────────────────
@@ -44,7 +45,35 @@ const GOALS = [
 
 const STEPS = ["Profil", "Minat", "Tujuan"];
 
-// ─── CHIP COMPONENT ──────────────────────────────────────────────────
+// ─── COMPONENTS ──────────────────────────────────────────────────
+function FeatureItem({
+  icon,
+  title,
+  description,
+  active,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  active: boolean;
+}) {
+  return (
+    <div className={`flex gap-[15px] items-center transition-all duration-300 ${active ? "opacity-100 translate-x-2" : "opacity-40"}`}>
+      <div className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-xl transition-all ${active ? "bg-white text-[#2563eb]" : "bg-white/10 text-white"}`}>
+        {icon}
+      </div>
+      <div className="flex flex-col">
+        <h3 className="font-bold text-[18px] text-white leading-tight drop-shadow-[0px_4px_4px_rgba(0,0,0,0.25)]">
+          {title}
+        </h3>
+        <p className="text-[13px] font-normal text-white opacity-90 leading-snug max-w-[250px]">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function Chip({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
   return (
     <button
@@ -102,7 +131,7 @@ function OnboardingContent() {
           .maybeSingle();
 
         if (profile?.has_completed_onboarding && !isEditMode) {
-          router.replace("/dashboard");
+          router.replace("/main");
           return;
         }
 
@@ -121,7 +150,7 @@ function OnboardingContent() {
 
       setIsChecking(false);
     });
-  }, [router]);
+  }, [router, isEditMode]);
 
   const toggleItem = (field: "interests" | "goals", value: string) => {
     setForm((prev) => ({
@@ -155,7 +184,7 @@ function OnboardingContent() {
       });
       const json = await res.json();
       if (!res.ok) { alert(json.error || "Gagal menyimpan"); setIsSaving(false); return; }
-      router.replace("/dashboard");
+      router.replace("/main");
     } catch { alert("Gagal terhubung ke server"); setIsSaving(false); }
   };
 
@@ -172,7 +201,7 @@ function OnboardingContent() {
         }),
       });
     } catch {}
-    router.replace("/dashboard");
+    router.replace("/main");
   };
 
   if (isChecking) {
@@ -184,74 +213,95 @@ function OnboardingContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex font-['Inter',sans-serif]">
-      {/* Left panel */}
-      <div className="hidden lg:flex w-[380px] shrink-0 bg-[#2563eb] flex-col items-center justify-center px-10 py-12 gap-8">
-        <Image src="/Logo.png" alt="Upvance" width={120} height={40} className="object-contain brightness-200" />
-        <div className="flex flex-col gap-6 w-full">
-          {STEPS.map((s, i) => (
-            <div key={s} className={`flex items-center gap-4 transition-all ${i + 1 === step ? "opacity-100" : "opacity-40"}`}>
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-[14px] ${
-                i + 1 < step ? "bg-green-400 text-white" :
-                i + 1 === step ? "bg-white text-[#2563eb]" :
-                "bg-white/20 text-white"
-              }`}>
-                {i + 1 < step ? <Check className="w-4 h-4" /> : i + 1}
-              </div>
-              <div>
-                <p className={`font-bold text-[15px] ${i + 1 === step ? "text-white" : "text-white/60"}`}>{s}</p>
-                <p className="text-white/40 text-[12px]">
-                  {i === 0 ? "Info dasar & akademik" : i === 1 ? "Topik yang kamu minati" : "Tujuan di Upvance"}
-                </p>
-              </div>
-            </div>
-          ))}
+    <div className="min-h-screen bg-[#f8fafc] flex font-['Inter',sans-serif]">
+      {/* Left panel (Auth Style) */}
+      <div className="hidden lg:flex lg:w-[450px] xl:w-[529px] relative flex-col bg-gradient-to-b from-[#2563eb] from-[20.673%] to-[#14cb72] p-8 xl:p-[50px] text-white overflow-hidden shrink-0 min-h-screen">
+        {/* Logo Section */}
+        <div className="flex items-center justify-center lg:justify-start mb-12 xl:mb-[60px] relative z-10">
+          <div className="w-[150px] h-[60px] relative">
+            <Image
+              src="/Logo_BW.png"
+              alt="Upvance Logo"
+              fill
+              className="object-contain"
+            />
+          </div>
         </div>
-        <p className="text-white/30 text-[12px] text-center mt-auto">
-          Data kamu aman dan tidak dibagikan tanpa izin.
+
+        {/* Hero Text */}
+        <div className="mb-12 xl:mb-[60px] relative z-10">
+          <h1 className="text-[32px] font-bold leading-[44px] drop-shadow-[0px_4px_4px_rgba(0,0,0,0.25)]">
+            Lengkapi Profil Untuk{" "}
+            <span className="text-[#fbc02d]">Pengalaman Terbaik</span>
+          </h1>
+        </div>
+
+        {/* Steps List */}
+        <div className="space-y-[40px] relative z-10">
+          <FeatureItem
+            icon={<User2 className="w-6 h-6" />}
+            title="Profil Dasar"
+            description="Bantu kami mengenal kamu lebih dekat melalui info akademik"
+            active={step === 1}
+          />
+          <FeatureItem
+            icon={<Sparkles className="w-6 h-6" />}
+            title="Topik Minat"
+            description="Pilih kategori acara yang ingin kamu ikuti setiap hari"
+            active={step === 2}
+          />
+          <FeatureItem
+            icon={<Target className="w-6 h-6" />}
+            title="Tujuan Personal"
+            description="Tentukan apa yang ingin kamu capai bersama Upvance"
+            active={step === 3}
+          />
+        </div>
+
+        {/* Decorative background blur */}
+        <div className="absolute top-[-50px] left-[-50px] w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+        <p className="text-white/40 text-[12px] mt-auto relative z-10">
+          © 2024 Upvance. Membangun masa depan mahasiswa Indonesia.
         </p>
       </div>
 
       {/* Right panel */}
       <div className="flex-1 flex flex-col relative">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
+        {/* Background Image (Same as Auth) */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <Image 
             src="/background-auth.png" 
             alt="" 
             fill 
-            className="object-cover opacity-60" 
+            className="object-cover opacity-80" 
             priority 
           />
-        </div>
-
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-8 py-4 bg-white/80 backdrop-blur-sm border-b border-gray-100 relative z-10">
-          {/* Mobile logo */}
-          <Image src="/Logo.png" alt="Upvance" width={90} height={30} className="object-contain lg:invisible" />
-          {/* Progress mobile */}
-          <div className="lg:hidden flex items-center gap-2">
-            {STEPS.map((_, i) => (
-              <div key={i} className={`h-1.5 rounded-full transition-all ${i + 1 <= step ? "bg-[#2563eb] w-8" : "bg-gray-200 w-4"}`} />
-            ))}
-          </div>
-          <button onClick={handleSkip} className="text-[13px] text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors">
-            Lewati <X className="w-3.5 h-3.5" />
-          </button>
+          <div className="absolute inset-0 bg-[#f8fafc]/40" />
         </div>
 
         {/* Content */}
-        <div className="flex-1 flex items-start justify-center px-4 md:px-6 py-10 overflow-y-auto relative z-10">
-          <div className="w-full max-w-[550px] bg-white/90 backdrop-blur-md rounded-[32px] border border-white/50 p-6 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
+        <div className="flex-1 flex items-center justify-center px-4 md:px-6 py-10 overflow-y-auto relative z-10">
+          <div className="w-full max-w-[550px] bg-white rounded-[32px] border border-gray-100 p-6 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
+            {/* Mobile bar */}
+            <div className="lg:hidden flex items-center justify-between mb-8">
+              <Image src="/Logo.png" alt="Upvance" width={100} height={35} className="object-contain" />
+              <button onClick={handleSkip} className="text-[13px] text-[#2563eb] font-bold">Lewati</button>
+            </div>
+
             {/* Step header */}
-            <div className="mb-8">
-              <p className="text-[13px] text-[#2563eb] font-semibold mb-1">Langkah {step} dari {STEPS.length}</p>
+            <div className="mb-8 relative">
+              {/* Desktop skip button */}
+              <button onClick={handleSkip} className="hidden lg:flex absolute -top-4 -right-4 items-center gap-1 text-[13px] text-gray-400 hover:text-[#2563eb] transition-colors p-2">
+                Lewati <X className="w-3.5 h-3.5" />
+              </button>
+              
+              <p className="text-[13px] text-[#2563eb] font-bold mb-1 uppercase tracking-wider">Langkah {step} dari 3</p>
               <h1 className="text-[28px] font-bold text-[#161616]">
                 {step === 1 ? "Halo! Kenalan dulu" :
                  step === 2 ? "Apa minat kamu?" :
                  "Apa tujuan kamu?"}
               </h1>
-              <p className="text-[14px] text-gray-500 mt-1">
+              <p className="text-[15px] text-[#6c6c6c] mt-2 font-medium">
                 {step === 1 ? "Lengkapi profil dasar kamu untuk pengalaman yang lebih personal." :
                  step === 2 ? "Pilih topik yang kamu minati — kami akan rekomendasikan acara yang relevan." :
                  "Pilih tujuan kamu agar kami bisa bantu mencapainya."}

@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/organism/Header";
 import Footer from "@/components/organism/Footer";
 import { createClient } from "@/lib/supabase/client";
+import { uploadImage } from "@/lib/imageUpload";
 import {
   LayoutDashboard, Users, Calendar, Bookmark, Clock, Plus,
   CheckCircle2, XCircle, LogOut, AlertCircle, Loader2, ShieldCheck,
@@ -58,6 +59,7 @@ const EMPTY_FORM = {
 
 export default function AdminDashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [chartsData, setChartsData] = useState<any>(null);
@@ -75,9 +77,45 @@ export default function AdminDashboardPage() {
   const [addForm, setAddForm] = useState(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
   const [addError, setAddError] = useState("");
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingPoster, setIsUploadingPoster] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'poster') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setAddError("File harus berupa gambar");
+      return;
+    }
+    
+    setAddError("");
+    if (type === 'logo') setIsUploadingLogo(true);
+    else setIsUploadingPoster(true);
+
+    const result = await uploadImage(file, type === 'logo' ? "organizers" : "events");
+    
+    if (result.error) {
+      setAddError(result.error);
+    } else {
+      if (type === 'logo') setAddForm(f => ({...f, organizer_logo_url: result.url ?? ""}));
+      else setAddForm(f => ({...f, image_url: result.url ?? ""}));
+    }
+    
+    if (type === 'logo') setIsUploadingLogo(false);
+    else setIsUploadingPoster(false);
+    e.target.value = '';
+  };
 
   // Delete confirmation
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const ensureUrlProtocol = (url: string) => {
+    if (!url || !url.trim()) return "";
+    const t = url.trim();
+    if (t.startsWith("data:image/")) return t; // allow base64
+    if (/^https?:\/\//i.test(t)) return t;
+    return `https://${t}`;
+  };
 
   useEffect(() => {
     async function load() {
@@ -96,7 +134,21 @@ export default function AdminDashboardPage() {
           setStats(j.stats); 
           setChartsData(j.charts);
         }
-        if (eventsRes.ok) { const j = await eventsRes.json(); setEvents(j.data ?? []); }
+        if (eventsRes.ok) { 
+          const j = await eventsRes.json(); 
+          const loadedEvents = j.data ?? [];
+          setEvents(loadedEvents); 
+
+          // Check for edit query param
+          const editEventId = searchParams.get("edit");
+          if (editEventId) {
+            const eventToEdit = loadedEvents.find((e: EventRow) => e.id === editEventId);
+            if (eventToEdit) {
+              setActiveTab("events");
+              handleEditClick(eventToEdit);
+            }
+          }
+        }
       } catch (err) {
         console.error("Gagal memuat data admin:", err);
       } finally {
@@ -104,7 +156,7 @@ export default function AdminDashboardPage() {
       }
     }
     load();
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -185,10 +237,18 @@ export default function AdminDashboardPage() {
       const url = isEditing ? `/api/admin/events/${editId}` : "/api/admin/events";
       const method = isEditing ? "PATCH" : "POST";
       
+      const payload = { 
+        ...addForm, 
+        price: addForm.is_free ? 0 : addForm.price,
+        event_url: ensureUrlProtocol(addForm.event_url),
+        image_url: ensureUrlProtocol(addForm.image_url),
+        organizer_logo_url: ensureUrlProtocol(addForm.organizer_logo_url)
+      };
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...addForm, price: addForm.is_free ? 0 : addForm.price }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) { setAddError(json.error || "Gagal menyimpan event"); setIsSaving(false); return; }
@@ -271,8 +331,8 @@ export default function AdminDashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="hidden md:flex items-center gap-2 bg-[#2563eb] text-white font-bold text-[14px] px-6 py-2 rounded-full hover:bg-blue-700 transition-all shadow-md shadow-blue-100">
-            <LayoutDashboard className="w-4 h-4" /> Buka Situs
+          <Link href="/dashboard" className="flex items-center gap-2 px-6 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-full text-[13px] font-bold transition-all shadow-sm">
+            <LayoutDashboard className="w-4 h-4 text-[#2563eb]" /> Lihat Situs
           </Link>
           <button onClick={handleLogout} className="flex items-center gap-2 px-6 py-2 bg-[#ef4444] text-white hover:bg-red-700 rounded-full text-[13px] font-bold transition-all shadow-md shadow-red-100">
             <LogOut className="w-4 h-4" /> Keluar
@@ -324,9 +384,6 @@ export default function AdminDashboardPage() {
                   <button onClick={() => {setActiveTab("events"); setShowAddModal(true);}} className="flex items-center gap-2 px-6 py-3 bg-[#2563eb] text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
                     <Plus className="w-5 h-5" /> Tambah Event Baru
                   </button>
-                  <Link href="/dashboard" className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-[#161616] rounded-2xl font-bold hover:bg-gray-50 transition-all">
-                    <LayoutDashboard className="w-5 h-5" /> Lihat Tampilan Publik
-                  </Link>
                </div>
             </div>
           </div>
@@ -601,10 +658,46 @@ export default function AdminDashboardPage() {
                     {ALL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </Field>
-                <Field label="Lokasi">
-                  <input type="text" value={addForm.location} onChange={setF("location")} placeholder="Kota atau Online" className={uInput} />
+                <Field label="Tipe Pelaksanaan *">
+                  <select 
+                    value={!addForm.is_online ? "offline" : (addForm.location === "Online" ? "online" : "hybrid")} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === "offline") setAddForm(f => ({ ...f, is_online: false, location: f.location === "Online" ? "" : f.location }));
+                      else if (val === "online") setAddForm(f => ({ ...f, is_online: true, location: "Online" }));
+                      else if (val === "hybrid") setAddForm(f => ({ ...f, is_online: true, location: f.location === "Online" ? "" : f.location }));
+                    }} 
+                    className={uInput}
+                  >
+                    <option value="offline">Offline (Tatap Muka)</option>
+                    <option value="online">Online (Daring)</option>
+                    <option value="hybrid">Hybrid (Offline & Online)</option>
+                  </select>
                 </Field>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(!addForm.is_online || (addForm.is_online && addForm.location !== "Online")) && (
+                  <Field label="Lokasi *">
+                    <input type="text" value={addForm.location} onChange={setF("location")} placeholder="Contoh: Jakarta Selatan" required className={uInput} />
+                  </Field>
+                )}
+                <Field label="Tipe Biaya *">
+                  <select value={addForm.is_free ? "free" : "paid"} onChange={e => setAddForm(f => ({ ...f, is_free: e.target.value === "free", price: e.target.value === "free" ? 0 : f.price }))} className={uInput}>
+                    <option value="free">Gratis (Tanpa Biaya)</option>
+                    <option value="paid">Berbayar</option>
+                  </select>
+                </Field>
+              </div>
+
+              {!addForm.is_free && (
+                <Field label="Biaya Pendaftaran (Rp) *">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[14px]">Rp</span>
+                    <input type="number" value={addForm.price} onChange={e => setAddForm(f => ({ ...f, price: parseInt(e.target.value) || 0 }))} min={0} required={!addForm.is_free} className={`${uInput} pl-11`} />
+                  </div>
+                </Field>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Tanggal Mulai">
@@ -619,8 +712,14 @@ export default function AdminDashboardPage() {
                 <Field label="Nama Penyelenggara (Opsional)">
                   <input type="text" value={addForm.organizer_name} onChange={setF("organizer_name")} placeholder="Contoh: BEM Universitas" className={uInput} />
                 </Field>
-                <Field label="Logo Penyelenggara (URL)">
-                  <input type="url" value={addForm.organizer_logo_url} onChange={setF("organizer_logo_url")} placeholder="https://..." className={uInput} />
+                <Field label="Logo Penyelenggara">
+                  <div className="flex items-center gap-2">
+                    <input type="url" value={addForm.organizer_logo_url} onChange={setF("organizer_logo_url")} placeholder="https://..." className={uInput} />
+                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} className="hidden" id="upload-logo" />
+                    <label htmlFor="upload-logo" className="h-[52px] px-6 bg-gray-100 hover:bg-gray-200 text-[#161616] font-bold rounded-xl flex items-center justify-center cursor-pointer transition-all whitespace-nowrap">
+                      {isUploadingLogo ? <Loader2 className="w-5 h-5 animate-spin" /> : "Upload"}
+                    </label>
+                  </div>
                 </Field>
               </div>
 
@@ -628,33 +727,19 @@ export default function AdminDashboardPage() {
                 <input type="url" value={addForm.event_url} onChange={setF("event_url")} placeholder="https://uphance.com/daftar/..." className={uInput} />
               </Field>
 
-              <Field label="URL Poster Acara (Opsional)">
-                <input type="url" value={addForm.image_url} onChange={setF("image_url")} placeholder="https://..." className={uInput} />
+              <Field label="Poster Acara">
+                <div className="flex items-center gap-2">
+                  <input type="url" value={addForm.image_url} onChange={setF("image_url")} placeholder="https://..." className={uInput} />
+                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'poster')} className="hidden" id="upload-poster" />
+                  <label htmlFor="upload-poster" className="h-[52px] px-6 bg-gray-100 hover:bg-gray-200 text-[#161616] font-bold rounded-xl flex items-center justify-center cursor-pointer transition-all whitespace-nowrap">
+                    {isUploadingPoster ? <Loader2 className="w-5 h-5 animate-spin" /> : "Upload"}
+                  </label>
+                </div>
               </Field>
 
               <Field label="Deskripsi Acara">
                 <textarea value={addForm.description} onChange={setF("description")} placeholder="Jelaskan detail acara secara menarik..." rows={4} className={`${uInput} resize-none h-auto py-3`} />
               </Field>
-
-              <div className="flex flex-wrap items-center gap-6 py-2 px-2 bg-gray-50 rounded-2xl">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input type="checkbox" checked={addForm.is_free} onChange={e => setAddForm(f => ({ ...f, is_free: e.target.checked, price: e.target.checked ? 0 : f.price }))} className="w-5 h-5 rounded-lg border-gray-300 text-[#2563eb] focus:ring-[#2563eb]" />
-                  <span className="text-[#161616] text-[14px] font-bold group-hover:text-[#2563eb] transition-colors">Event Gratis</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input type="checkbox" checked={addForm.is_online} onChange={e => setAddForm(f => ({ ...f, is_online: e.target.checked }))} className="w-5 h-5 rounded-lg border-gray-300 text-[#2563eb] focus:ring-[#2563eb]" />
-                  <span className="text-[#161616] text-[14px] font-bold group-hover:text-[#2563eb] transition-colors">Dilaksanakan Online</span>
-                </label>
-              </div>
-
-              {!addForm.is_free && (
-                <Field label="Biaya Pendaftaran (Rp)">
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[14px]">Rp</span>
-                    <input type="number" value={addForm.price} onChange={e => setAddForm(f => ({ ...f, price: parseInt(e.target.value) || 0 }))} min={0} className={`${uInput} pl-11`} />
-                  </div>
-                </Field>
-              )}
 
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={() => { setShowAddModal(false); setIsEditing(false); setEditId(null); setAddForm(EMPTY_FORM); }} className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-[#6c6c6c] font-bold rounded-2xl transition-all">

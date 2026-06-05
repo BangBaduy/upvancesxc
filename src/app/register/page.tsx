@@ -84,6 +84,11 @@ export default function RegisterPage() {
                 </button>
               </div>
 
+              {/* Hint password minimal 8 digit — selalu tampil */}
+              <p className="text-[11px] text-gray-400 -mt-1 px-1">
+                🔒 Minimal <strong>8 karakter</strong>, gunakan huruf besar, angka, dan simbol untuk keamanan lebih baik.
+              </p>
+
               {passwordInfo && (
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
