@@ -7,6 +7,7 @@ import Footer from "@/components/organism/Footer";
 import EventCard from "@/components/molecules/EventCard";
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, X } from "lucide-react";
 import type { Database } from "@/types";
+import { createClient } from "@/lib/supabase/client";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"] & {
   organizers?: {
@@ -58,25 +59,29 @@ function DashboardContent() {
   const [userInterests, setUserInterests] = useState<EventCategory[]>([]);
 
   useEffect(() => {
-    // Ambil minat user saat pertama kali load
-    import("@/lib/supabase/client").then(({ createClient }) => {
-      const supabase = createClient();
-      supabase.auth.getUser().then(({ data }) => {
-        if (data.user) {
-          supabase.from('profiles').select('interests').eq('id', data.user.id).single()
-            .then(({ data: profile }) => {
-              if (profile?.interests && profile.interests.length > 0) {
-                // Konversi minat ke kategori yang valid
-                const mapped = profile.interests.filter((i: string) => ALL_CATEGORIES.some(c => c.value === i)) as EventCategory[];
-                setUserInterests(mapped.length > 0 ? mapped : UMUM_CATEGORIES);
-              }
-              setIsInterestsLoaded(true);
-            }, () => setIsInterestsLoaded(true));
+    const loadInterests = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase.from('profiles').select('interests').eq('id', user.id).single();
+          if (profile?.interests && profile.interests.length > 0) {
+            const mapped = profile.interests.filter((i: string) => ALL_CATEGORIES.some(c => c.value === i)) as EventCategory[];
+            setUserInterests(mapped.length > 0 ? mapped : UMUM_CATEGORIES);
+          } else {
+            setUserInterests(UMUM_CATEGORIES);
+          }
         } else {
-          setIsInterestsLoaded(true);
+          setUserInterests(UMUM_CATEGORIES);
         }
-      }).catch(() => setIsInterestsLoaded(true));
-    });
+      } catch (err) {
+        console.error("Error loading interests:", err);
+        setUserInterests(UMUM_CATEGORIES);
+      } finally {
+        setIsInterestsLoaded(true);
+      }
+    };
+    loadInterests();
   }, []);
 
   const fetchEvents = useCallback(async (currentPage: number, search: string, cats: Set<EventCategory>, freeOnly: boolean, segment: string, interests: EventCategory[]) => {
@@ -215,7 +220,7 @@ function DashboardContent() {
 
         {/* Blur Ellipse from Figma 266:437 */}
         <div className="absolute top-[659px] left-[-185px] w-[377px] h-[337px] rotate-[-5deg] opacity-10 md:opacity-40">
-          <div className="w-full h-full bg-gradient-to-br from-[#2563eb]/30 to-[#14cb72]/30 rounded-full blur-[80px]" />
+          <div className="w-full h-full bg-gradient-to-br from-[#2563eb]/30 to-[#14cb72]/30 rounded-full blur-3xl transform-gpu will-change-transform" />
         </div>
       </div>
 

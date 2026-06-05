@@ -84,7 +84,7 @@ export default function ContactPage() {
                   className="w-full py-3.5 bg-[#25D366] text-white font-bold rounded-2xl hover:bg-[#128C7E] transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
                 >
                   <Phone className="w-4 h-4" />
-                  Hubungi Irfan
+                  Hubungi Admin 1
                 </a>
                 <a
                   href="https://wa.me/6281287804751"
@@ -93,7 +93,7 @@ export default function ContactPage() {
                   className="w-full py-3.5 bg-[#25D366] text-white font-bold rounded-2xl hover:bg-[#128C7E] transition-all duration-200 flex items-center justify-center gap-2 text-[15px]"
                 >
                   <Phone className="w-4 h-4" />
-                  Hubungi Antigravity
+                  Hubungi Admin 2
                 </a>
               </div>
             </div>
@@ -139,10 +139,8 @@ export default function ContactPage() {
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 mb-1">Lokasi Tim</h3>
-                <p className="text-[14px] text-gray-600 leading-relaxed">
-                  UIN Syarif Hidayatullah Jakarta<br />
-                  Ciputat, Tangerang Selatan<br />
-                  <span className="text-[#0284c7] font-medium">Banten, Indonesia 15419</span>
+                <p className="text-[14px] text-[#0284c7] font-medium leading-relaxed">
+                  UIN JKT, UPNVJ, UPI, UNTIRTA, UNPAD
                 </p>
               </div>
             </div>
