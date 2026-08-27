@@ -117,7 +117,8 @@ function LoginContent() {
                   <button type="button" className="w-full h-[46px] bg-white text-gray-700 border border-gray-200 font-bold text-[13px] md:text-[14px] rounded-[12px] hover:bg-gray-50 transition-all">Belum punya akun? Daftar</button>
                 </Link>
                 <div className="grid grid-cols-2 gap-3">
-                  <button type="button" onClick={handleGoogleLogin} className="h-[46px] flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-[12px] hover:bg-gray-50 transition-all">
+                  {/* Google login disabled for public submission */}
+                  <button type="button" disabled title="Fitur login Google sedang dalam pemeliharaan" className="h-[46px] flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-[12px] opacity-50 cursor-not-allowed">
                     <svg width="18" height="18" viewBox="0 0 18 18">
                       <path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.7v2.24h2.91c1.71-1.57 2.68-3.88 2.68-6.57z" fill="#4285F4"/>
                       <path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.24c-.8.54-1.84.87-3.05.87-2.33 0-4.3-1.58-5-3.71H.95v2.3C2.43 15.89 5.5 18 9 18z" fill="#34A853"/>
