@@ -10,19 +10,27 @@ export default function LandingPage() {
   const [stats, setStats] = useState({ totalEvents: "1000+", totalUsers: "10k+" });
 
   useEffect(() => {
-    // Attempt to fetch real stats, otherwise keep defaults
-    const supabase = createClient();
-    Promise.all([
-      supabase.from('events').select('id', { count: 'exact', head: true }).eq('is_published', true),
-      supabase.from('profiles').select('id', { count: 'exact', head: true })
-    ]).then(([events, users]) => {
-      if (events.count || users.count) {
-        setStats({
-          totalEvents: events.count ? `${events.count}+` : "1000+",
-          totalUsers: "20+"
-        });
+    // Non-blocking stats fetching with fallback
+    let isMounted = true;
+    const fetchStats = async () => {
+      try {
+        const supabase = createClient();
+        const [eventsRes, usersRes] = await Promise.all([
+          supabase.from('events').select('id', { count: 'exact', head: true }).eq('is_published', true),
+          supabase.from('profiles').select('id', { count: 'exact', head: true })
+        ]);
+        if (isMounted && (eventsRes?.count || usersRes?.count)) {
+          setStats({
+            totalEvents: eventsRes.count ? `${eventsRes.count}+` : "1000+",
+            totalUsers: usersRes.count ? `${usersRes.count}+` : "20+"
+          });
+        }
+      } catch (err) {
+        // Silently retain defaults on error
       }
-    });
+    };
+    fetchStats();
+    return () => { isMounted = false; };
   }, []);
 
   return (

@@ -59,11 +59,16 @@ function DashboardContent() {
   const [userInterests, setUserInterests] = useState<EventCategory[]>([]);
 
   useEffect(() => {
+    let mounted = true;
+    const timeout = setTimeout(() => {
+      if (mounted) setIsInterestsLoaded(true);
+    }, 1000);
+
     const loadInterests = async () => {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        if (user && mounted) {
           const { data: profile } = await supabase.from('profiles').select('interests').eq('id', user.id).single();
           if (profile?.interests && profile.interests.length > 0) {
             const mapped = profile.interests.filter((i: string) => ALL_CATEGORIES.some(c => c.value === i)) as EventCategory[];
@@ -71,17 +76,24 @@ function DashboardContent() {
           } else {
             setUserInterests(UMUM_CATEGORIES);
           }
-        } else {
+        } else if (mounted) {
           setUserInterests(UMUM_CATEGORIES);
         }
       } catch (err) {
-        console.error("Error loading interests:", err);
-        setUserInterests(UMUM_CATEGORIES);
+        if (mounted) setUserInterests(UMUM_CATEGORIES);
       } finally {
-        setIsInterestsLoaded(true);
+        if (mounted) {
+          clearTimeout(timeout);
+          setIsInterestsLoaded(true);
+        }
       }
     };
     loadInterests();
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+    };
   }, []);
 
   const fetchEvents = useCallback(async (currentPage: number, search: string, cats: Set<EventCategory>, freeOnly: boolean, segment: string, interests: EventCategory[]) => {
