@@ -23,7 +23,19 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
+.env.local
+.env.development
+.env.production
 .env*.local
+
+# keys & secrets
+*.pem
+*.key
+*.cert
+
+# scratch / test scripts
+test-*.js
 
 # vercel
 .vercel
